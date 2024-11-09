@@ -50,7 +50,7 @@ public class client {
             frame.setVisible(true);
 
             // Start listening for server messages
-            new Thread(new ServerListener()).start();
+            new Thread(new ServerListener(frame)).start();
 
             // Handle key events for paddle movement
             frame.addKeyListener(new KeyAdapter() {
@@ -82,6 +82,13 @@ public class client {
 
     // Thread to listen for game state updates from the server
     private class ServerListener implements Runnable {
+
+        JFrame frame;
+
+        ServerListener(JFrame f){
+            this.frame = f;
+        }
+
         @Override
         public void run() {
             
@@ -108,9 +115,10 @@ public class client {
                     }
 
                     // Trigger a repaint on the game window
-                    SwingUtilities.invokeLater(() -> {
-                        JFrame.getFrames()[0].repaint();
-                    });
+                    //SwingUtilities.invokeLater(() -> {
+                    //    JFrame.getFrames()[0].repaint();
+                    //});
+                    frame.repaint();
                 }
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
