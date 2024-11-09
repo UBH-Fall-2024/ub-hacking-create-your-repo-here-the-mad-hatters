@@ -1,18 +1,24 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
 
 public class client {
     private static final String SERVER_ADDRESS = "10.84.83.113"; // Server's IP address
     private static final int SERVER_PORT = 12345;
-    private static final int WIDTH =Toolkit.getDefaultToolkit().getScreenSize().width ;
-    private static final int HEIGHT = Toolkit.getDefaultToolkit().getScreenSize().height;
+    private static final int WIDTH = 1920;
+    private static final int HEIGHT = 1080;
     private static final int FPS = 60;
 
     // Game state variables
-    //here
+    ArrayList<Character> charactersOnField = new ArrayList<>();
+
+    // Client Only Variables
+    public int counter = 0;
+    public int spriteNum = 1;
 
     private static Socket socket;
     private static ObjectOutputStream out;
@@ -42,18 +48,22 @@ public class client {
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.add(new GamePanel());
             frame.setVisible(true);
+            // Make sure the frame can get key events
+            frame.setFocusable(true);
+            frame.requestFocusInWindow();
 
             // Start listening for server messages
-            new Thread(new ServerListener()).start();
+            new Thread(new ServerListener(frame)).start();
 
             // Handle key events for paddle movement
             frame.addKeyListener(new KeyAdapter() {
+                ArrayList<Character> newChars = new ArrayList<>();
                 @Override
                 public void keyPressed(KeyEvent e) {
                     String action = null;
                     //CHANGE AS NEEDED
                     if (e.getKeyCode() == KeyEvent.VK_UP) {
-                        action = "UP";
+                        newChars.add(new Character("Alice"));
                     } else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
                         action = "DOWN";
                     }
@@ -61,7 +71,10 @@ public class client {
                     // Send player action to the server
                     if (action != null) {
                         try {//SEND PLAYER ACTION
-                            out.writeObject(new PlayerAction(playerId));
+                            System.out.println("SEND ACTION");
+                            PlayerAction act = new PlayerAction(playerId);
+                            act.charactersOnField = newChars;
+                            out.writeObject(act);
                             out.flush();
                         } catch (IOException ex) {
                             ex.printStackTrace();
@@ -76,6 +89,13 @@ public class client {
 
     // Thread to listen for game state updates from the server
     private class ServerListener implements Runnable {
+
+        JFrame frame;
+
+        ServerListener(JFrame f){
+            this.frame = f;
+        }
+
         @Override
         public void run() {
             
@@ -87,12 +107,21 @@ public class client {
                     GameState gameState = (GameState) in.readObject();
 
                     // Update game state variables
-                    //var1 = gameState.var1;
+                    charactersOnField = gameState.charactersOnField;
+
+                    //update local animations
+                    counter++;
+                    if (counter >= (FPS / 2)) { // Smooth animation
+                        spriteNum = (spriteNum == 1) ? 2 : 1;
+                        counter = 0;
+                    }
 
                     // Trigger a repaint on the game window
                     SwingUtilities.invokeLater(() -> {
-                        JFrame.getFrames()[0].repaint();
+                    //    JFrame.getFrames()[0].repaint();
+                        frame.repaint();
                     });
+                    //frame.repaint();
                 }
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
@@ -105,11 +134,26 @@ public class client {
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
-            g.setColor(Color.BLACK);
-            g.fillRect(0, 0, WIDTH, HEIGHT); // Clear the background
+            //Graphics2D g2 = (Graphics2D)g;
+
+            g.setColor(Color.GRAY);
+            g.fillRect(0, 0, getWidth(), getHeight()); // Clear the background
 
             // Draw Game
 
+            // Draw Characters
+            for(Character character : charactersOnField){
+                Character fixer = new Character(character.Name);
+                BufferedImage image = null;
+                if (character.direction == 1) {
+                    image = (spriteNum == 1) ? fixer.left1 : fixer.left2;
+                }
+                else {
+                    image = (spriteNum == 1) ? fixer.right1 : fixer.right2;
+                }
+                g.drawImage(image, 200, 200, 120, 120, null);
+            }
+            //characters all drawn
 
         }
     }
