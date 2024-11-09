@@ -1,16 +1,17 @@
-import java.awt.Toolkit;
+import java.awt.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
 
 public class server {
     private static final int SERVER_PORT = 12345;
-    private static final int WIDTH = Toolkit.getDefaultToolkit().getScreenSize().width;
-    private static final int HEIGHT = Toolkit.getDefaultToolkit().getScreenSize().width;
+    private static final int WIDTH =Toolkit.getDefaultToolkit().getScreenSize().width ;
+    private static final int HEIGHT = Toolkit.getDefaultToolkit().getScreenSize().height;
+    private static final int FPS = 60;
+    private static final ArrayList<ClientHandler> clients = new ArrayList<>();
 
-    //variables go here
-
-    private static final List<ClientHandler> clients = new ArrayList<>();
+    //game variables
+    //here
 
     public static void main(String[] args) {
         try (ServerSocket serverSocket = new ServerSocket(SERVER_PORT)) {
@@ -28,7 +29,10 @@ public class server {
             while (true) {
                 updateGameState();
                 broadcastGameState();
-                Thread.sleep(16); // Approx 60 FPS
+                double drawInterval = 1000000000/FPS;
+                double nextDrawTime = System.nanoTime()+drawInterval;
+                double remainingTime = nextDrawTime-System.nanoTime();
+                Thread.sleep((long )remainingTime);
             }
 
         } catch (IOException | InterruptedException e) {
@@ -36,69 +40,65 @@ public class server {
         }
     }
 
-    //update state of game -- this is a time tick; every tick update variables by constant (physics and shit)
+    //update state of game each tick -- change variables every time step
     private static void updateGameState() {
         
-
-
     }
 
-    private static void broadcastGameState() {
-        String gameState = "var1" + "," + "var2";
+    private static void broadcastGameState() {//update GameState as needed (new variables)
+        GameState gameState = new GameState();
         for (ClientHandler client : clients) {
-            client.sendMessage(gameState);
+            client.sendGameState(gameState);
         }
     }
 
     private static class ClientHandler implements Runnable {
         private final Socket socket;
-        private final PrintWriter out;
+        private final ObjectOutputStream out;
+        private final ObjectInputStream in;
         private final int playerId;
 
         public ClientHandler(Socket socket, int playerId) throws IOException {
             this.socket = socket;
             this.playerId = playerId;
-            this.out = new PrintWriter(socket.getOutputStream(), true);
+            this.out = new ObjectOutputStream(socket.getOutputStream());
+            this.in = new ObjectInputStream(socket.getInputStream());
 
-            // Send player ID to client
-            out.println(playerId);
             System.out.println("Player " + playerId + " connected.");
         }
 
         @Override
         public void run() {
-            try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-                String message;
-                while ((message = in.readLine()) != null) {
-                    handleClientMessage(message);
+            try {
+                // Send initial player ID to the client
+                out.writeObject(playerId);
+
+                while (true) {
+                    PlayerAction action = (PlayerAction) in.readObject();
+                    handlePlayerAction(action);
                 }
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+
+        //add functionality here
+        private void handlePlayerAction(PlayerAction action) {
+            if (action.playerId == 1) {
+                
+            }
+            if (action.playerId == 2) {
+
+            }
+        }
+
+        public void sendGameState(GameState gameState) {
+            try {
+                out.writeObject(gameState);
+                out.flush();
             } catch (IOException e) {
                 e.printStackTrace();
-            } finally {
-                try {
-                    socket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
             }
-        }
-
-        private void handleClientMessage(String message) {
-            String[] parts = message.split(",");
-            int id = Integer.parseInt(parts[0]);
-
-            //handle clients input to update game variables
-            if(id == 1){
-
-            }
-            if(id == 2){
-
-            }
-        }
-
-        public void sendMessage(String message) {
-            out.println(message);
         }
     }
 }
-

@@ -3,19 +3,21 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.net.*;
+
 public class client {
-    private static final String SERVER_ADDRESS = "10.84.83.113"; // Change to the server's IP address if remote
+    private static final String SERVER_ADDRESS = "10.84.83.113"; // Server's IP address
     private static final int SERVER_PORT = 12345;
     private static final int WIDTH =Toolkit.getDefaultToolkit().getScreenSize().width ;
     private static final int HEIGHT = Toolkit.getDefaultToolkit().getScreenSize().height;
+    private static final int FPS = 60;
 
     // Game state variables
-    
-    private static int playerId = -1; // Will be set by server (1 or 2)
+    //here
 
     private static Socket socket;
-    private static PrintWriter out;
-    private static BufferedReader in;
+    private static ObjectOutputStream out;
+    private static ObjectInputStream in;
+    private static int playerId;
 
     public static void main(String[] args) {
         client client = new client();
@@ -27,15 +29,15 @@ public class client {
         try {
             // Establish a connection to the server
             socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
-            out = new PrintWriter(socket.getOutputStream(), true);
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            out = new ObjectOutputStream(socket.getOutputStream());
+            in = new ObjectInputStream(socket.getInputStream());
 
-            // Read and set the player's ID (1 or 2) as assigned by the server
-            playerId = Integer.parseInt(in.readLine());
+            // Receive player ID from server
+            playerId = (Integer) in.readObject();
             System.out.println("Connected as Player " + playerId);
 
             // Set up the game window
-            JFrame frame = new JFrame("Pong Multiplayer");
+            JFrame frame = new JFrame("Game Title");//SET TITLE
             frame.setSize(WIDTH, HEIGHT);
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.add(new GamePanel());
@@ -45,13 +47,29 @@ public class client {
             new Thread(new ServerListener()).start();
 
             // Handle key events for paddle movement
-            frame.addMouseListener(new MouseAdapter() {
-              
+            frame.addKeyListener(new KeyAdapter() {
+                @Override
+                public void keyPressed(KeyEvent e) {
+                    String action = null;
+                    //CHANGE AS NEEDED
+                    if (e.getKeyCode() == KeyEvent.VK_UP) {
+                        action = "UP";
+                    } else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+                        action = "DOWN";
+                    }
 
-            }); 
-                
-           
-        } catch (IOException e) {
+                    // Send player action to the server
+                    if (action != null) {
+                        try {//SEND PLAYER ACTION
+                            out.writeObject(new PlayerAction(playerId));
+                            out.flush();
+                        } catch (IOException ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                }
+            });
+        } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
     }
@@ -61,17 +79,19 @@ public class client {
         @Override
         public void run() {
             try {
-                String message;
-                while ((message = in.readLine()) != null) {
-                    // Split the message to extract game state values
-                    String[] parts = message.split(",");
-                   
+                while (true) {
+                    // Receive GameState object from the server
+                    GameState gameState = (GameState) in.readObject();
+
+                    // Update game state variables
+                    //var1 = gameState.var1;
+
                     // Trigger a repaint on the game window
                     SwingUtilities.invokeLater(() -> {
                         JFrame.getFrames()[0].repaint();
                     });
                 }
-            } catch (IOException e) {
+            } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
             }
         }
@@ -82,7 +102,12 @@ public class client {
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
-            
+            g.setColor(Color.BLACK);
+            g.fillRect(0, 0, WIDTH, HEIGHT); // Clear the background
+
+            // Draw Game
+
+
         }
     }
 }
