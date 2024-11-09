@@ -123,10 +123,10 @@ public class client {
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
-            Graphics2D g2 = (Graphics2D)g;
+            //Graphics2D g2 = (Graphics2D)g;
 
-            g2.setColor(Color.BLACK);
-            g2.fillRect(0, 0, WIDTH, HEIGHT); // Clear the background
+            g.setColor(Color.BLACK);
+            g.fillRect(0, 0, WIDTH, HEIGHT); // Clear the background
 
             // Draw Game
 
@@ -150,9 +150,9 @@ public class client {
                     }
                 }
                 int dimm = character.size * character.scale;
-                g2.drawImage(image, character.x, character.y, dimm, dimm, null);
+                g.drawImage(image, character.x, character.y, dimm, dimm, null);
             }
-            
+            //characters all drawn
 
         }
     }
