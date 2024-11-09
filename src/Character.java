@@ -40,6 +40,7 @@ public class Character{
         this.damage= 0;
         this.Name=N;
         this.direction =2;
+        System.out.println("NIGGA");
         try{
             if(N.equals("Alice")){
                 this.left1 = ImageIO.read(new File("/images/Alice-Walking/Alice-Left-1.png"));
@@ -48,6 +49,7 @@ public class Character{
                 this.right2 = ImageIO.read(new File("/images/Alice-Walking/Alice-Right-2.png"));
                 this.size = 20;
                 this.scale = 3;
+                System.out.println("SHIT WORKS");
             }
             //if(N.equals("CHARACTER_NAME")){}
         }
