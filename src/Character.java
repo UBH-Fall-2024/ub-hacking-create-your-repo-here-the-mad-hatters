@@ -1,4 +1,5 @@
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 
 import javax.imageio.*;
@@ -41,10 +42,10 @@ public class Character{
         this.direction =2;
         try{
             if(N.equals("Alice")){
-                this.left1 = ImageIO.read(getClass().getResourceAsStream("/images/Alice-Walking/Alice-Left-1.png"));
-                this.left2 = ImageIO.read(getClass().getResourceAsStream("/images/Alice-Walking/Alice-Left-2.png"));
-                this.right1 = ImageIO.read(getClass().getResourceAsStream("/images/Alice-Walking/Alice-Right-1.png"));
-                this.right2 = ImageIO.read(getClass().getResourceAsStream("/images/Alice-Walking/Alice-Right-2.png"));
+                this.left1 = ImageIO.read(new File("/images/Alice-Walking/Alice-Left-1.png"));
+                this.left2 = ImageIO.read(new File("/images/Alice-Walking/Alice-Left-2.png"));
+                this.right1 = ImageIO.read(new File("/images/Alice-Walking/Alice-Right-1.png"));
+                this.right2 = ImageIO.read(new File("/images/Alice-Walking/Alice-Right-2.png"));
                 this.size = 20;
                 this.scale = 3;
             }
