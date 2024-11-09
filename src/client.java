@@ -9,8 +9,8 @@ import java.util.ArrayList;
 public class client {
     private static final String SERVER_ADDRESS = "10.84.83.113"; // Server's IP address
     private static final int SERVER_PORT = 12345;
-    private static final int WIDTH =Toolkit.getDefaultToolkit().getScreenSize().width ;
-    private static final int HEIGHT = Toolkit.getDefaultToolkit().getScreenSize().height;
+    private static final int WIDTH = 1920;
+    private static final int HEIGHT = 1080;
     private static final int FPS = 60;
 
     // Game state variables
@@ -62,7 +62,7 @@ public class client {
                     String action = null;
                     //CHANGE AS NEEDED
                     if (e.getKeyCode() == KeyEvent.VK_UP) {
-                        action = "UP";
+                        charactersOnField.add(new Character("Alice"));
                     } else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
                         action = "DOWN";
                     }
@@ -70,7 +70,9 @@ public class client {
                     // Send player action to the server
                     if (action != null) {
                         try {//SEND PLAYER ACTION
-                            out.writeObject(new PlayerAction(playerId));
+                            PlayerAction act = new PlayerAction(playerId);
+                            act.charactersOnField = charactersOnField;
+                            out.writeObject(act);
                             out.flush();
                         } catch (IOException ex) {
                             ex.printStackTrace();
@@ -133,10 +135,9 @@ public class client {
             //Graphics2D g2 = (Graphics2D)g;
 
             g.setColor(Color.GRAY);
-            g.fillRect(0, 0, WIDTH, HEIGHT); // Clear the background
+            g.fillRect(0, 0, getWidth(), getHeight()); // Clear the background
 
             // Draw Game
-            g.setColor(Color.WHITE);
 
             // Draw Characters
             for(Character character : charactersOnField){
