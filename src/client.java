@@ -8,6 +8,7 @@ public class client {
     private static final int SERVER_PORT = 12345;
     private static final int WIDTH =Toolkit.getDefaultToolkit().getScreenSize().width ;
     private static final int HEIGHT = Toolkit.getDefaultToolkit().getScreenSize().height;
+    private static final int FPS = 60;
 
     // Game state variables
     
@@ -60,6 +61,9 @@ public class client {
     private class ServerListener implements Runnable {
         @Override
         public void run() {
+            
+
+
             try {
                 String message;
                 while ((message = in.readLine()) != null) {

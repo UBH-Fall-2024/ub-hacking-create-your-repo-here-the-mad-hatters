@@ -7,7 +7,7 @@ public class server {
     private static final int SERVER_PORT = 12345;
     private static final int WIDTH = Toolkit.getDefaultToolkit().getScreenSize().width;
     private static final int HEIGHT = Toolkit.getDefaultToolkit().getScreenSize().width;
-
+    private static final int FPS = 60;
     //variables go here
 
     private static final List<ClientHandler> clients = new ArrayList<>();
@@ -26,9 +26,12 @@ public class server {
 
             // Start game loop
             while (true) {
+                double drawInterval = 1000000000/FPS;
+            double nextDrawTime = System.nanoTime()+drawInterval;
+            double remainingTime = nextDrawTime-System.nanoTime();
                 updateGameState();
                 broadcastGameState();
-                Thread.sleep(16); // Approx 60 FPS
+                Thread.sleep((long )remainingTime); // Approx 60 FPS
             }
 
         } catch (IOException | InterruptedException e) {
