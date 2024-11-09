@@ -32,10 +32,10 @@ public class server {
                 while (true) {
                     updateGameState();
                     broadcastGameState();
-                    double drawInterval = 1000000000/FPS;
-                    double nextDrawTime = System.nanoTime()+drawInterval;
-                    double remainingTime = nextDrawTime-System.nanoTime();
-                    Thread.sleep((long )remainingTime);
+                    //double drawInterval = 1000000000/FPS;
+                    //double nextDrawTime = System.nanoTime()+drawInterval;
+                    //double remainingTime = nextDrawTime-System.nanoTime();
+                    Thread.sleep(16);// roughly 60 FPS
                 }
 
             } catch (IOException | InterruptedException e) {
