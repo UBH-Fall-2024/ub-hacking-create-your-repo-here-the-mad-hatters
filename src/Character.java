@@ -16,8 +16,8 @@ public class Character{
     public int scale;
 
     public Character(){
-        this.x=0;
-        this.y=0;
+        this.x=200;
+        this.y=200;
         this.movement_speed=0;
         this.health=100;
         this.damage= 0;
@@ -32,8 +32,8 @@ public class Character{
     }
 
     public Character(String N){
-        this.x=0;
-        this.y=0;
+        this.x=200;
+        this.y=200;
         this.movement_speed=0;
         this.health=100;
         this.damage= 0;

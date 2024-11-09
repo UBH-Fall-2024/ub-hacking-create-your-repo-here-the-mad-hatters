@@ -7,4 +7,7 @@ public class GameState {
     GameState(){
         charactersOnField = new ArrayList<>();
     }
+    GameState(ArrayList<Character> COF){
+        charactersOnField = COF;
+    }
 }

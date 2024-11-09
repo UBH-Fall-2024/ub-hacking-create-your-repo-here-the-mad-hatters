@@ -28,28 +28,28 @@ public class server {
                 //Testing Characters
                 charactersOnField.add(new Character("Alice"));
 
-            // Start game loop
-            while (true) {
-                updateGameState();
-                broadcastGameState();
-                double drawInterval = 1000000000/FPS;
-                double nextDrawTime = System.nanoTime()+drawInterval;
-                double remainingTime = nextDrawTime-System.nanoTime();
-                Thread.sleep((long )remainingTime);
-            }
+                // Start game loop
+                while (true) {
+                    updateGameState();
+                    broadcastGameState();
+                    double drawInterval = 1000000000/FPS;
+                    double nextDrawTime = System.nanoTime()+drawInterval;
+                    double remainingTime = nextDrawTime-System.nanoTime();
+                    Thread.sleep((long )remainingTime);
+                }
 
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
+            }
         }
-    }
 
     //update state of game each tick -- change variables every time step
     private static void updateGameState() {
-        
+        //update charactersOnField as necesassry
     }
 
     private static void broadcastGameState() {//update GameState as needed (new variables)
-        GameState gameState = new GameState();
+        GameState gameState = new GameState(charactersOnField);
         for (ClientHandler client : clients) {
             client.sendGameState(gameState);
         }
