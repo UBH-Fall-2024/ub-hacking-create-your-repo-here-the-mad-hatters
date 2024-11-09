@@ -14,8 +14,10 @@ public class server {
     static ArrayList<Character> charactersOnField = new ArrayList<>();
     
         public static void main(String[] args) {
+            //Testing Characters
             Character c = new Character("Alice");
             charactersOnField.add(c);
+            
             try (ServerSocket serverSocket = new ServerSocket(SERVER_PORT)) {
                 System.out.println("Server started on port " + SERVER_PORT);
     
@@ -26,9 +28,6 @@ public class server {
                     clients.add(clientHandler);
                     new Thread(clientHandler).start();
                 }
-    
-                //Testing Characters
-                charactersOnField.add(new Character("Alice"));
 
                 // Start game loop
                 while (true) {
