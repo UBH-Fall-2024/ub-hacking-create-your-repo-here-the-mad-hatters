@@ -10,20 +10,23 @@ public class server {
     private static final int FPS = 60;
     private static final ArrayList<ClientHandler> clients = new ArrayList<>();
 
-    //game variables
-    //here
-
-    public static void main(String[] args) {
-        try (ServerSocket serverSocket = new ServerSocket(SERVER_PORT)) {
-            System.out.println("Server started on port " + SERVER_PORT);
-
-            while (clients.size() < 2) {
-                Socket clientSocket = serverSocket.accept();
-                int playerId = clients.size() + 1; // Assigns player ID 1 or 2
-                ClientHandler clientHandler = new ClientHandler(clientSocket, playerId);
-                clients.add(clientHandler);
-                new Thread(clientHandler).start();
-            }
+    // Game state variables
+    static ArrayList<Character> charactersOnField = new ArrayList<>();
+    
+        public static void main(String[] args) {
+            try (ServerSocket serverSocket = new ServerSocket(SERVER_PORT)) {
+                System.out.println("Server started on port " + SERVER_PORT);
+    
+                while (clients.size() < 2) {
+                    Socket clientSocket = serverSocket.accept();
+                    int playerId = clients.size() + 1; // Assigns player ID 1 or 2
+                    ClientHandler clientHandler = new ClientHandler(clientSocket, playerId);
+                    clients.add(clientHandler);
+                    new Thread(clientHandler).start();
+                }
+    
+                //Testing Characters
+                charactersOnField.add(new Character("Alice"));
 
             // Start game loop
             while (true) {

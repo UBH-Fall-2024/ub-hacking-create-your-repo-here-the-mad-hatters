@@ -1,4 +1,7 @@
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+
+import javax.imageio.*;
 
 public class Character{
 
@@ -7,8 +10,10 @@ public class Character{
     public int health;
     public int damage;
     public String Name;
-    public String direction;
-    public BufferedImage left, right;
+    public int direction;//1 = left, 2 = right
+    public BufferedImage left1, left2, right1, right2;
+    public int size;
+    public int scale;
 
     public Character(){
         this.x=0;
@@ -17,10 +22,38 @@ public class Character{
         this.health=100;
         this.damage= 0;
         this.Name="";
-        this.direction ="R";
-        this.left = null;
-        this.right = null;
-        
+        this.direction =2;
+        this.left1=null;
+        this.left2=null;
+        this.right1=null;
+        this.right2=null;
+        this.size=20;
+        this.scale=2;
+    }
+
+    public Character(String N){
+        this.x=0;
+        this.y=0;
+        this.movement_speed=0;
+        this.health=100;
+        this.damage= 0;
+        this.Name=N;
+        this.direction =2;
+        try{
+            if(N.equals("Alice")){
+                this.left1 = ImageIO.read(getClass().getResourceAsStream("/images/Alice Walking/Alice Left 1.png"));
+                this.left2 = ImageIO.read(getClass().getResourceAsStream("/images/Alice Walking/Alice Left 2.png"));
+                this.right1 = ImageIO.read(getClass().getResourceAsStream("/images/Alice Walking/Alice Right 1.png"));
+                this.right2 = ImageIO.read(getClass().getResourceAsStream("/images/Alice Walking/Alice Right 2.png"));
+                this.size = 20;
+                this.scale = 3;
+            }
+            //if(N.equals("CHARACTER_NAME")){}
+        }
+        catch(IOException e){
+            e.printStackTrace();
+        }
+    }{
 
     }
     

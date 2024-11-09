@@ -1,8 +1,10 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
 
 public class client {
     private static final String SERVER_ADDRESS = "10.84.83.113"; // Server's IP address
@@ -12,7 +14,11 @@ public class client {
     private static final int FPS = 60;
 
     // Game state variables
-    //here
+    ArrayList<Character> charactersOnField = new ArrayList<>();
+
+    // Client Only Variables
+    public int counter = 0;
+    public int spriteNum;
 
     private static Socket socket;
     private static ObjectOutputStream out;
@@ -87,7 +93,19 @@ public class client {
                     GameState gameState = (GameState) in.readObject();
 
                     // Update game state variables
-                    //var1 = gameState.var1;
+                    charactersOnField = gameState.charactersOnField;
+
+                    //update local animations
+                    counter++;
+                    if(counter > 10){
+                        if(spriteNum == 1){
+                            spriteNum = 2;
+                        }
+                        else if(spriteNum == 2){
+                            spriteNum = 1;
+                        }
+                        counter = 0;
+                    }
 
                     // Trigger a repaint on the game window
                     SwingUtilities.invokeLater(() -> {
@@ -105,11 +123,36 @@ public class client {
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
-            g.setColor(Color.BLACK);
-            g.fillRect(0, 0, WIDTH, HEIGHT); // Clear the background
+            Graphics2D g2 = (Graphics2D)g;
+
+            g2.setColor(Color.BLACK);
+            g2.fillRect(0, 0, WIDTH, HEIGHT); // Clear the background
 
             // Draw Game
 
+            // Draw Characters
+            for(Character character : charactersOnField){
+                BufferedImage image = null;
+                if(character.direction == 1){
+                    if(spriteNum == 1){
+                        image = character.left1;
+                    }
+                    if(spriteNum == 2){
+                        image = character.left2;
+                    }
+                }
+                if(character.direction == 2){
+                    if(spriteNum == 1){
+                        image = character.right1;
+                    }
+                    if(spriteNum == 2){
+                        image = character.right2;
+                    }
+                }
+                int dimm = character.size * character.scale;
+                g2.drawImage(image, character.x, character.y, dimm, dimm, null);
+            }
+            
 
         }
     }
