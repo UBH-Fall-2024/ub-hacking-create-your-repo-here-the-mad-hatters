@@ -7,7 +7,6 @@ public class Character{
     public int health;
     public int damage;
     public String Name;
-
     public String direction;
     public BufferedImage left, right;
 
@@ -21,6 +20,7 @@ public class Character{
         this.direction ="R";
         this.left = null;
         this.right = null;
+        
 
     }
     
