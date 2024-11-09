@@ -53,8 +53,6 @@ public class Character{
         catch(IOException e){
             e.printStackTrace();
         }
-    }{
-
     }
     
 }

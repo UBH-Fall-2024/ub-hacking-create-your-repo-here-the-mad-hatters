@@ -48,6 +48,9 @@ public class client {
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.add(new GamePanel());
             frame.setVisible(true);
+            // Make sure the frame can get key events
+            frame.setFocusable(true);
+            frame.requestFocusInWindow();
 
             // Start listening for server messages
             new Thread(new ServerListener(frame)).start();
@@ -104,21 +107,17 @@ public class client {
 
                     //update local animations
                     counter++;
-                    if(counter > 10){
-                        if(spriteNum == 1){
-                            spriteNum = 2;
-                        }
-                        else if(spriteNum == 2){
-                            spriteNum = 1;
-                        }
+                    if (counter >= (FPS / 2)) { // Smooth animation
+                        spriteNum = (spriteNum == 1) ? 2 : 1;
                         counter = 0;
                     }
 
                     // Trigger a repaint on the game window
-                    //SwingUtilities.invokeLater(() -> {
+                    SwingUtilities.invokeLater(() -> {
                     //    JFrame.getFrames()[0].repaint();
-                    //});
-                    frame.repaint();
+                        frame.repaint();
+                    });
+                    //frame.repaint();
                 }
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
@@ -133,32 +132,24 @@ public class client {
             super.paintComponent(g);
             //Graphics2D g2 = (Graphics2D)g;
 
-            g.setColor(Color.BLACK);
+            g.setColor(Color.GRAY);
             g.fillRect(0, 0, WIDTH, HEIGHT); // Clear the background
 
             // Draw Game
+            g.setColor(Color.WHITE);
 
             // Draw Characters
             for(Character character : charactersOnField){
                 BufferedImage image = null;
-                if(character.direction == 1){
-                    if(spriteNum == 1){
-                        image = character.left1;
-                    }
-                    if(spriteNum == 2){
-                        image = character.left2;
-                    }
+                if (character.direction == 1) {
+                    image = (spriteNum == 1) ? character.left1 : character.left2;
+                } else if (character.direction == 2) {
+                    image = (spriteNum == 1) ? character.right1 : character.right2;
                 }
-                if(character.direction == 2){
-                    if(spriteNum == 1){
-                        image = character.right1;
-                    }
-                    if(spriteNum == 2){
-                        image = character.right2;
-                    }
+                if (image != null) {
+                    int dimm = character.size * character.scale;
+                    g.drawImage(image, character.x, character.y, dimm, dimm, null);
                 }
-                int dimm = character.size * character.scale;
-                g.drawImage(image, character.x, character.y, dimm, dimm, null);
             }
             //characters all drawn
 
