@@ -18,7 +18,7 @@ public class client {
 
     // Client Only Variables
     public int counter = 0;
-    public int spriteNum;
+    public int spriteNum = 1;
 
     private static Socket socket;
     private static ObjectOutputStream out;
@@ -57,12 +57,13 @@ public class client {
 
             // Handle key events for paddle movement
             frame.addKeyListener(new KeyAdapter() {
+                ArrayList<Character> newChars = new ArrayList<>();
                 @Override
                 public void keyPressed(KeyEvent e) {
                     String action = null;
                     //CHANGE AS NEEDED
                     if (e.getKeyCode() == KeyEvent.VK_UP) {
-                        charactersOnField.add(new Character("Alice"));
+                        newChars.add(new Character("Alice"));
                     } else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
                         action = "DOWN";
                     }
@@ -70,8 +71,9 @@ public class client {
                     // Send player action to the server
                     if (action != null) {
                         try {//SEND PLAYER ACTION
+                            System.out.println("SEND ACTION");
                             PlayerAction act = new PlayerAction(playerId);
-                            act.charactersOnField = charactersOnField;
+                            act.charactersOnField = newChars;
                             out.writeObject(act);
                             out.flush();
                         } catch (IOException ex) {
@@ -141,16 +143,15 @@ public class client {
 
             // Draw Characters
             for(Character character : charactersOnField){
+                Character fixer = new Character(character.Name);
                 BufferedImage image = null;
                 if (character.direction == 1) {
-                    image = (spriteNum == 1) ? character.left1 : character.left2;
-                } else if (character.direction == 2) {
-                    image = (spriteNum == 1) ? character.right1 : character.right2;
+                    image = (spriteNum == 1) ? fixer.left1 : fixer.left2;
                 }
-                if (image != null) {
-                    int dimm = character.size * character.scale;
-                    g.drawImage(image, character.x, character.y, dimm, dimm, null);
+                else {
+                    image = (spriteNum == 1) ? fixer.right1 : fixer.right2;
                 }
+                g.drawImage(image, 200, 200, 120, 120, null);
             }
             //characters all drawn
 

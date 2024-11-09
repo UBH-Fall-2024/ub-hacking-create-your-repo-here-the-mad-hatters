@@ -15,6 +15,7 @@ public class server {
     
         public static void main(String[] args) {
             Character c = new Character("Alice");
+            charactersOnField.add(c);
             try (ServerSocket serverSocket = new ServerSocket(SERVER_PORT)) {
                 System.out.println("Server started on port " + SERVER_PORT);
     
@@ -47,7 +48,6 @@ public class server {
     //update state of game each tick -- change variables every time step
     private static void updateGameState() {
         //update charactersOnField as necesassry
-        charactersOnField.add(new Character("Alice"));
     }
 
     private static void broadcastGameState() {//update GameState as needed (new variables)
@@ -69,15 +69,15 @@ public class server {
             this.out = new ObjectOutputStream(socket.getOutputStream());
             this.in = new ObjectInputStream(socket.getInputStream());
 
+            // Inform the client about its player ID
+            out.writeObject(playerId);
+            out.flush();
             System.out.println("Player " + playerId + " connected.");
         }
 
         @Override
         public void run() {
             try {
-                // Send initial player ID to the client
-                out.writeObject(playerId);
-
                 while (true) {
                     PlayerAction action = (PlayerAction) in.readObject();
                     handlePlayerAction(action);
@@ -89,7 +89,9 @@ public class server {
 
         //add functionality here
         private void handlePlayerAction(PlayerAction action) {
-            charactersOnField = action.charactersOnField;
+            for(Character c : action.charactersOnField){
+                charactersOnField.add(c);
+;            }
             if (action.playerId == 1) {
                 
             }

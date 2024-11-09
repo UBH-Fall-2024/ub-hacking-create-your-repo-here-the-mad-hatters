@@ -1,6 +1,7 @@
+import java.io.Serializable;
 import java.util.ArrayList;
 
-public class PlayerAction {
+public class PlayerAction implements Serializable{
     
     int playerId;
     ArrayList<Character> charactersOnField;

@@ -1,10 +1,11 @@
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 
 import javax.imageio.*;
 
-public class Character{
+public class Character implements Serializable{
 
     public int x, y;
     public int movement_speed;
@@ -12,7 +13,7 @@ public class Character{
     public int damage;
     public String Name;
     public int direction;//1 = left, 2 = right
-    public BufferedImage left1, left2, right1, right2;
+    public transient BufferedImage left1, left2, right1, right2;
     public int size;
     public int scale;
 
@@ -39,8 +40,7 @@ public class Character{
         this.health=100;
         this.damage= 0;
         this.Name=N;
-        this.direction =2;
-        System.out.println("NIGGA");
+        this.direction=2;
         try{
             if(N.equals("Alice")){
                 this.left1 = ImageIO.read(new File("src/Alice-Left-1.png"));
@@ -48,14 +48,18 @@ public class Character{
                 this.right1 = ImageIO.read(new File("src/Alice-Right-1.png"));
                 this.right2 = ImageIO.read(new File("src/Alice-Right-2.png"));
                 this.size = 20;
-                this.scale = 3;
-                System.out.println("SHIT WORKS");
+                this.scale = 6;
             }
             //if(N.equals("CHARACTER_NAME")){}
         }
         catch(IOException e){
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public String toString() {
+        return this.Name;
     }
     
 }
