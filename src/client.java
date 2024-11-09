@@ -3,12 +3,11 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.net.*;
-
 public class client {
     private static final String SERVER_ADDRESS = "10.84.83.113"; // Change to the server's IP address if remote
     private static final int SERVER_PORT = 12345;
-    private static final int WIDTH = 800;
-    private static final int HEIGHT = 600;
+    private static final int WIDTH =Toolkit.getDefaultToolkit().getScreenSize().width ;
+    private static final int HEIGHT = Toolkit.getDefaultToolkit().getScreenSize().height;
 
     // Game state variables
     

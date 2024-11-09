@@ -1,11 +1,12 @@
+import java.awt.Toolkit;
 import java.io.*;
 import java.net.*;
 import java.util.*;
 
 public class server {
     private static final int SERVER_PORT = 12345;
-    private static final int WIDTH = 800;
-    private static final int HEIGHT = 600;
+    private static final int WIDTH = Toolkit.getDefaultToolkit().getScreenSize().width;
+    private static final int HEIGHT = Toolkit.getDefaultToolkit().getScreenSize().width;
 
     //variables go here
 
