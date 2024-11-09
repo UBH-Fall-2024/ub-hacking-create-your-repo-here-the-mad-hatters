@@ -78,6 +78,9 @@ public class client {
     private class ServerListener implements Runnable {
         @Override
         public void run() {
+            
+
+
             try {
                 while (true) {
                     // Receive GameState object from the server
