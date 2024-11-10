@@ -136,11 +136,11 @@ public class client extends JFrame {
                 // Create spawn buttons with correct character names based on known playerId
                 if (playerId == 1) {
                     createSpawnButton("CHAR1", "Alice", 300, 700);
-                    createSpawnButton("CHAR2", "Dragon", 525, 700);
-                    createSpawnButton("CHAR3", "White Rabbit", 750, 700);
-                    createSpawnButton("CHAR4", "Cheshire Cat", 975, 700);
+                    createSpawnButton("CHAR2", "Mad Hatter", 525, 700);
+                    createSpawnButton("CHAR3", "Tweedle Twins", 750, 700);
+                    createSpawnButton("CHAR4", "Bandersnatch", 975, 700);
                 } else {
-                    createSpawnButton("CHAR1", "Mad Hatter", 300, 700);
+                    createSpawnButton("CHAR1", "Guard", 300, 700);
                     createSpawnButton("CHAR2", "Jabberwocky", 525, 700);
                     createSpawnButton("CHAR3", "Red Queen", 750, 700);
                     createSpawnButton("CHAR4", "Knave", 975, 700);
@@ -164,36 +164,17 @@ public class client extends JFrame {
     }
 
     // Separate cooldown timers for each character type
-    private long lastAliceSpawnTime = 0;
-    private long lastDragonSpawnTime = 0;
-    private static final long ALICE_SPAWN_COOLDOWN = 2000; // 2 seconds cooldown
-    private static final long DRAGON_SPAWN_COOLDOWN = 2000; // 2 seconds cooldown
+    private long lastChar1SpawnTime = 0;
+    private long lastChar2SpawnTime = 0;
+    private static final long CHARACTER1_SPAWN_COOLDOWN = 2000; // 2 seconds cooldown
+    private static final long CHARACTER2_SPAWN_COOLDOWN = 3000; // 2 seconds cooldown
     private JButton spawnButton, spawnButton2;
     // Characters 3 and 4 variables
     private JButton spawnButton3, spawnButton4;
-    private static final long CHARACTER3_SPAWN_COOLDOWN = 2000;
-    private static final long CHARACTER4_SPAWN_COOLDOWN = 2000;
+    private static final long CHARACTER3_SPAWN_COOLDOWN = 5000;
+    private static final long CHARACTER4_SPAWN_COOLDOWN = 7000;
     private long lastChar3SpawnTime = 0;
     private long lastChar4SpawnTime = 0;
-
-    private void initializeField() {
-        field = new GamePanel();
-        field.setFocusable(true);
-        field.setLayout(null);
-        
-        // Define character names for each player
-        String[] player1Characters = {"Alice", "Dragon", "White Rabbit", "Cheshire Cat"};
-        String[] player2Characters = {"Mad Hatter", "Jabberwocky", "Red Queen", "Knave"};
-        
-        // Use the appropriate character names based on player ID
-        String[] characterNames = ((playerId == 1) ? player1Characters : player2Characters);
-        
-        // Create spawn buttons with correct character names
-        createSpawnButton("CHAR1", characterNames[0], 300, 700);
-        createSpawnButton("CHAR2", characterNames[1], 525, 700);
-        createSpawnButton("CHAR3", characterNames[2], 750, 700);
-        createSpawnButton("CHAR4", characterNames[3], 975, 700);
-    }
 
     private JButton createSpawnButton(String charType, String displayName, int x, int y) {
         JButton button = new JButton("Spawn " + displayName + " (Ready)");
@@ -231,13 +212,13 @@ public class client extends JFrame {
         JButton buttonToUpdate = null;
         switch(charType) {
             case "CHAR1": 
-                timeSinceLastSpawn = currentTime - lastAliceSpawnTime;
-                cooldownTime = ALICE_SPAWN_COOLDOWN;
+                timeSinceLastSpawn = currentTime - lastChar1SpawnTime;
+                cooldownTime = CHARACTER1_SPAWN_COOLDOWN;
                 buttonToUpdate = spawnButton;
                 break;
             case "CHAR2":
-                timeSinceLastSpawn = currentTime - lastDragonSpawnTime;
-                cooldownTime = DRAGON_SPAWN_COOLDOWN;
+                timeSinceLastSpawn = currentTime - lastChar2SpawnTime;
+                cooldownTime = CHARACTER2_SPAWN_COOLDOWN;
                 buttonToUpdate = spawnButton2;
                 break;
             case "CHAR3":
@@ -294,8 +275,8 @@ public class client extends JFrame {
     
                 // Update the appropriate cooldown timer
                 switch(charType) {
-                    case "CHAR1": lastAliceSpawnTime = currentTime; break;
-                    case "CHAR2": lastDragonSpawnTime = currentTime; break;
+                    case "CHAR1": lastChar1SpawnTime = currentTime; break;
+                    case "CHAR2": lastChar2SpawnTime = currentTime; break;
                     case "CHAR3": lastChar3SpawnTime = currentTime; break;
                     case "CHAR4": lastChar4SpawnTime = currentTime; break;
                 }

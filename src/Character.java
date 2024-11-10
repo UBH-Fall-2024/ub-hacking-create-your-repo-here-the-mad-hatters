@@ -31,13 +31,13 @@ public class Character implements Serializable {
                     Name = "Alice";
                     maxHealth = 100;
                     damage = 20;
-                    speed = 3;
+                    speed = 4;
                     attackRange = 50; // Melee range
                     isRanged = false;
                     towerDamageScale = 1;
                     break;
-                case "CHAR2": // Dragon (now ranged)
-                    Name = "Dragon";
+                case "CHAR2": // Mad Hatter (now ranged)
+                    Name = "Mad Hatter";
                     maxHealth = 80;
                     damage = 15;
                     speed = 2;
@@ -45,15 +45,32 @@ public class Character implements Serializable {
                     isRanged = true;
                     towerDamageScale = 2;
                     break;
-                // ... other cases ...
+                case "CHAR3": // Tweedles
+                    Name = "Tweedle Twins";
+                    maxHealth = 150;
+                    damage = 30;
+                    speed = 2;
+                    attackRange = 50; // Melee range
+                    isRanged = false;
+                    towerDamageScale = 2;
+                    break;
+                case "CHAR4": // Bandersnatch
+                    Name = "Bandersnatch";
+                    maxHealth = 300;
+                    damage = 10;
+                    speed = 1;
+                    attackRange = 50;
+                    isRanged = false;
+                    towerDamageScale = 4;
+                    break;
             }
         } else {
             switch (type) {
-                case "CHAR1": // Mad Hatter
-                    Name = "Mad Hatter";
+                case "CHAR1": // Guard
+                    Name = "Guard";
                     maxHealth = 100;
                     damage = 20;
-                    speed = 3;
+                    speed = 4;
                     attackRange = 50; // Melee range
                     isRanged = false;
                     towerDamageScale = 1;
@@ -67,7 +84,24 @@ public class Character implements Serializable {
                     isRanged = true;
                     towerDamageScale = 2;
                     break;
-                // ... other cases ...
+                case "CHAR3": // Queen
+                    Name = "Red Queen";
+                    maxHealth = 150;
+                    damage = 30;
+                    speed = 2;
+                    attackRange = 50; // Melee range
+                    isRanged = false;
+                    towerDamageScale = 2;
+                    break;
+                case "CHAR4": // Knave
+                    Name = "Knave";
+                    maxHealth = 300;
+                    damage = 10;
+                    speed = 1;
+                    attackRange = 50;
+                    isRanged = false;
+                    towerDamageScale = 4;
+                    break;
             }
         }
         currentHealth = maxHealth;
