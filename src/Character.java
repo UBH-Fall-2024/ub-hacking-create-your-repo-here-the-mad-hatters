@@ -14,17 +14,20 @@ public class Character implements Serializable {
     double currentHealth;
     int damage;
     int speed;
-    int attackRange;  // New field for attack range
-    boolean isRanged; // New field to identify ranged units
+    int attackRange;
+    boolean isRanged;
     boolean isInCombat;
     int towerDamageScale;
-    public String id; // Add unique identifier
+    public String id;
+    
+    // Attack speed related fields
+    private int attackSpeed; // Frames between attacks
+    private int attackCooldown = 0; // Current cooldown counter
     
     public Character(String type, int playerId) {
         this.type = type;
-        this.id = UUID.randomUUID().toString(); // Generate unique ID
+        this.id = UUID.randomUUID().toString();
         
-        // Set attributes based on character type and player ID
         if (playerId == 1) {
             switch (type) {
                 case "CHAR1": // Alice
@@ -32,27 +35,30 @@ public class Character implements Serializable {
                     maxHealth = 100;
                     damage = 20;
                     speed = 4;
-                    attackRange = 50; // Melee range
+                    attackRange = 50;
                     isRanged = false;
                     towerDamageScale = 1;
+                    attackSpeed = 60; // Attack once per second at 60 FPS
                     break;
-                case "CHAR2": // Mad Hatter (now ranged)
+                case "CHAR2": // Mad Hatter (ranged)
                     Name = "Mad Hatter";
                     maxHealth = 80;
-                    damage = 15;
+                    damage = 1;
                     speed = 2;
-                    attackRange = 300; // Long range
+                    attackRange = 300;
                     isRanged = true;
-                    towerDamageScale = 2;
+                    towerDamageScale = 30;
+                    attackSpeed = 60;
                     break;
                 case "CHAR3": // Tweedles
                     Name = "Tweedle Twins";
                     maxHealth = 150;
-                    damage = 30;
+                    damage = 40;
                     speed = 2;
-                    attackRange = 50; // Melee range
+                    attackRange = 50;
                     isRanged = false;
                     towerDamageScale = 2;
+                    attackSpeed = 60;
                     break;
                 case "CHAR4": // Bandersnatch
                     Name = "Bandersnatch";
@@ -61,7 +67,8 @@ public class Character implements Serializable {
                     speed = 1;
                     attackRange = 50;
                     isRanged = false;
-                    towerDamageScale = 4;
+                    towerDamageScale = 10;
+                    attackSpeed = 60;
                     break;
             }
         } else {
@@ -71,27 +78,31 @@ public class Character implements Serializable {
                     maxHealth = 100;
                     damage = 20;
                     speed = 4;
-                    attackRange = 50; // Melee range
+                    attackRange = 50;
                     isRanged = false;
                     towerDamageScale = 1;
+                    attackSpeed = 60;
                     break;
-                case "CHAR2": // Jabberwocky (now ranged)
+                case "CHAR2": // Jabberwocky (ranged)
                     Name = "Jabberwocky";
                     maxHealth = 80;
-                    damage = 15;
+                    damage = 1;
                     speed = 2;
-                    attackRange = 300; // Long range
+                    attackRange = 300;
                     isRanged = true;
-                    towerDamageScale = 2;
+                    towerDamageScale = 30;
+                    attackSpeed = 60;
+                    scale = 3;
                     break;
                 case "CHAR3": // Queen
                     Name = "Red Queen";
                     maxHealth = 150;
-                    damage = 30;
+                    damage = 40;
                     speed = 2;
-                    attackRange = 50; // Melee range
+                    attackRange = 50;
                     isRanged = false;
                     towerDamageScale = 2;
+                    attackSpeed = 60;
                     break;
                 case "CHAR4": // Knave
                     Name = "Knave";
@@ -100,7 +111,8 @@ public class Character implements Serializable {
                     speed = 1;
                     attackRange = 50;
                     isRanged = false;
-                    towerDamageScale = 4;
+                    towerDamageScale = 10;
+                    attackSpeed = 60;
                     break;
             }
         }
@@ -108,10 +120,23 @@ public class Character implements Serializable {
     }
     
     public void attack(Character target) {
-        if (currentHealth > 0 && target.currentHealth > 0) {
+        // Only attack if cooldown is 0
+        if (attackCooldown <= 0 && currentHealth > 0 && target.currentHealth > 0) {
             target.currentHealth -= damage;
             if (target.currentHealth < 0) target.currentHealth = 0;
+            // Reset cooldown after attack
+            attackCooldown = attackSpeed;
         }
+    }
+    
+    public void updateCooldowns() {
+        if (attackCooldown > 0) {
+            attackCooldown--;
+        }
+    }
+    
+    public boolean canAttack() {
+        return attackCooldown <= 0;
     }
     
     public boolean isDead() {
@@ -120,9 +145,9 @@ public class Character implements Serializable {
     
     public void move() {
         if (!isInCombat) {
-            if (direction == 1) { // Moving left
+            if (direction == 1) {
                 x -= speed;
-            } else { // Moving right
+            } else {
                 x += speed;
             }
         }

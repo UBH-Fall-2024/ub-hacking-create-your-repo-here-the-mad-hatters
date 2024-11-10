@@ -68,7 +68,7 @@ public class client extends JFrame {
     }
 
     private void initializeMenu() {
-        menu = new ImageBackgroundPanel("src/aliceTitleScreen.jpg");
+        menu = new ImageBackgroundPanel("src/aliceTitleScreen.png");
         menu.setLayout(null);
 
         JLabel title = createTitleLabel();
@@ -102,7 +102,7 @@ public class client extends JFrame {
     private JButton createStartButton() {
         JButton startButton = new JButton("Start");
         startButton.setSize(400, 125);
-        startButton.setLocation(550, 350);
+        startButton.setLocation(525, 350);
         startButton.setFont(loadCustomFont().deriveFont(60f));
         startButton.setBackground(Color.CYAN);
         startButton.setForeground(Color.DARK_GRAY);
@@ -443,6 +443,9 @@ public class client extends JFrame {
 
         private void handleCharacterCombat(Character character) {
             try {
+                // Update attack cooldowns
+                character.updateCooldowns();
+                
                 // Check for tower collision
                 Rectangle charBounds = new Rectangle(
                     (int)character.x,
@@ -451,7 +454,7 @@ public class client extends JFrame {
                     character.size * character.scale
                 );
                 
-                // Tower collision (even ranged units need to be in normal range to hit tower)
+                // Tower collision
                 Tower targetTower = character.direction == 1 ? leftTower : rightTower;
                 Rectangle towerBounds = new Rectangle(
                     targetTower.x,
@@ -461,9 +464,9 @@ public class client extends JFrame {
                 );
                 
                 // If colliding with tower, stop moving and attack
-                if (charBounds.intersects(towerBounds)) {
+                if (charBounds.intersects(towerBounds) && character.canAttack()) {
                     character.isInCombat = true;
-                    targetTower.takeDamage(character.damage);
+                    targetTower.takeDamage(character.damage * character.towerDamageScale);
                     character.currentHealth = 0; // Units die when hitting tower
                     
                     // Send combat update to server
@@ -488,24 +491,13 @@ public class client extends JFrame {
                             ));
                         
                         if (canAttack) {
-                            // Ranged units stop at their attack range
                             character.isInCombat = true;
-                            character.attack(otherChar);
+                            if (character.canAttack()) {
+                                character.attack(otherChar);
+                            }
                             inCombat = true;
                             
-                            // If the other character can attack back (either ranged or in melee range)
-                            if (otherChar.isRanged && distance <= otherChar.attackRange || 
-                                !otherChar.isRanged && charBounds.intersects(new Rectangle(
-                                    (int)otherChar.x,
-                                    (int)otherChar.y,
-                                    otherChar.size * otherChar.scale,
-                                    otherChar.size * otherChar.scale
-                                ))) {
-                                otherChar.isInCombat = true;
-                                otherChar.attack(character);
-                            }
-                            
-                            if(otherChar.isDead() || character.isDead()){
+                            if(otherChar.isDead() || character.isDead()) {
                                 inCombat = false;
                                 character.isInCombat = false;
                                 otherChar.isInCombat = false;
@@ -524,7 +516,7 @@ public class client extends JFrame {
                 e.printStackTrace();
                 connected = false;
             }
-        } 
+        }
 
         // Helper method to calculate distance between two characters
         private double calculateDistance(Character char1, Character char2) {
