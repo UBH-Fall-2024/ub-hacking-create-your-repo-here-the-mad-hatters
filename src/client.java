@@ -8,6 +8,10 @@ import java.net.*;
 import java.util.ArrayList;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.List;
+import javax.sound.sampled.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class client extends JFrame {
     private static final String SERVER_ADDRESS = "127.0.0.1";
@@ -27,6 +31,8 @@ public class client extends JFrame {
     private volatile List<Character> charactersOnField = new CopyOnWriteArrayList<>();
     private volatile int counter = 0;
     private volatile int spriteNum = 1;
+
+    private SoundManager soundManager = SoundManager.getInstance();
 
     private Socket socket;
     private ObjectOutputStream out;
@@ -494,10 +500,17 @@ public class client extends JFrame {
                             character.isInCombat = true;
                             if (character.canAttack()) {
                                 character.attack(otherChar);
+                                // Play appropriate attack sound
+                                if (character.isRanged) {
+                                    soundManager.playSound("ranged_attack");
+                                } else {
+                                    soundManager.playSound("attack");
+                                }
                             }
                             inCombat = true;
                             
                             if(otherChar.isDead() || character.isDead()) {
+                                soundManager.playSound("death");
                                 inCombat = false;
                                 character.isInCombat = false;
                                 otherChar.isInCombat = false;
@@ -656,5 +669,71 @@ class Tower implements Serializable {
 
     public boolean isDestroyed() {
         return currentHealth <= 0;
+    }
+}
+
+class SoundManager {
+    private static SoundManager instance;
+    private Map<String, Clip> soundClips;
+    private boolean soundEnabled = true;
+
+    private SoundManager() {
+        soundClips = new HashMap<>();
+        initializeSounds();
+    }
+
+    public static SoundManager getInstance() {
+        if (instance == null) {
+            instance = new SoundManager();
+        }
+        return instance;
+    }
+
+    private void initializeSounds() {
+        loadSound("death", "src/bone-crack.wav");
+        loadSound("attack", "src/sword.wav");
+        loadSound("ranged_attack", "src/arrow-shoot.wav");
+        loadSound("tower_hit", "src/tower-hit.wav");
+    }
+
+    private void loadSound(String soundName, String filePath) {
+        try {
+            File soundFile = new File(filePath);
+            AudioInputStream ais = AudioSystem.getAudioInputStream(soundFile);
+            Clip clip = AudioSystem.getClip();
+            clip.open(ais);
+            soundClips.put(soundName, clip);
+        } catch (Exception e) {
+            System.err.println("Error loading sound: " + soundName + " - " + e.getMessage());
+        }
+    }
+
+    public void playSound(String soundName) {
+        if (!soundEnabled) return;
+        
+        Clip clip = soundClips.get(soundName);
+        if (clip != null) {
+            // Stop and reset the clip before playing
+            clip.stop();
+            clip.setFramePosition(0);
+            clip.start();
+        }
+    }
+
+    public void toggleSound() {
+        soundEnabled = !soundEnabled;
+        if (!soundEnabled) {
+            // Stop all currently playing sounds
+            for (Clip clip : soundClips.values()) {
+                clip.stop();
+            }
+        }
+    }
+
+    public void cleanup() {
+        for (Clip clip : soundClips.values()) {
+            clip.close();
+        }
+        soundClips.clear();
     }
 }

@@ -4,37 +4,15 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.Clip;
-import javax.sound.sampled.LineUnavailableException;
-
 public class server {  // Changed from lowercase 'server' to uppercase 'Server'
     private static final int SERVER_PORT = 12345;
     private static final int FPS = 60;
     private static final ArrayList<ClientHandler> clients = new ArrayList<>();
-
-        //sounds
-        // private static Clip death;
-    
-        // private static AudioInputStream ais1;
-        // private static AudioInputStream ais2;
-        // private static AudioInputStream ais3;
     
         // Game state variables
         static List<Character> charactersOnField = new CopyOnWriteArrayList<>();
         
         public static void main(String[] args) {
-        //     try {
-        //         ais1 = AudioSystem.getAudioInputStream(new File("src/bone-crack.wav"));
-        //     } catch (Exception e) {
-        //         throw new RuntimeException(e);
-        //     }
-        //     try {
-        //         death.open(ais1);
-        // } catch (LineUnavailableException | IOException e) {
-        //     throw new RuntimeException(e);
-        // }
 
         // Testing Characters
         Character c = new Character("Alice", 1);
@@ -93,8 +71,6 @@ public class server {  // Changed from lowercase 'server' to uppercase 'Server'
         
         // Remove dead characters
         charactersOnField.removeIf(character -> character.currentHealth <= 0);
-        // death.setFramePosition(0);
-        // death.start();
     }
 
     private static void broadcastGameState() {
