@@ -5,62 +5,68 @@ import java.io.Serializable;
 
 import javax.imageio.*;
 
-public class Character implements Serializable{
-
-    public int x, y;
-    public int movement_speed;
-    public int health;
-    public int damage;
-    public String Name;
-    public int direction;//1 = left, 2 = right
-    public transient BufferedImage left1, left2, right1, right2;
-    public int size;
-    public int scale;
-
-    public Character(){
-        this.x=200;
-        this.y=200;
-        this.movement_speed=0;
-        this.health=100;
-        this.damage= 0;
-        this.Name="";
-        this.direction =2;
-        this.left1=null;
-        this.left2=null;
-        this.right1=null;
-        this.right2=null;
-        this.size=20;
-        this.scale=2;
-    }
-
-    public Character(String N){
-        this.x=200;
-        this.y=200;
-        this.movement_speed=0;
-        this.health=100;
-        this.damage= 0;
-        this.Name=N;
-        this.direction=2;
-        try{
-            if(N.equals("Alice")){
-                this.left1 = ImageIO.read(new File("src/Alice-Left-1.png"));
-                this.left2 = ImageIO.read(new File("src/Alice-Left-2.png"));
-                this.right1 = ImageIO.read(new File("src/Alice-Right-1.png"));
-                this.right2 = ImageIO.read(new File("src/Alice-Right-2.png"));
-                this.size = 20;
-                this.scale = 6;
-            }
-            //if(N.equals("CHARACTER_NAME")){}
-        }
-        catch(IOException e){
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public String toString() {
-        return this.Name;
+public class Character implements Serializable {
+    private static final long serialVersionUID = 1L;
+    String Name;
+    double x, y;
+    int direction;  // 1 for left, 2 for right
+    int size = 32;
+    int scale = 3;
+    
+    // Combat stats
+    int maxHealth;
+    int currentHealth;
+    int damage;
+    int attackSpeed = 500; // milliseconds between attacks
+    long lastAttackTime = 0;
+    boolean isAttacking = false;
+    Character currentTarget = null;
+    
+    public Character(String name) {
+        this.Name = name;
+        initializeStats(name);
     }
     
+    private void initializeStats(String name) {
+        switch(name) {
+            case "Alice":
+                maxHealth = 100;
+                damage = 20;
+                break;
+            case "Dragon":
+                maxHealth = 200;
+                damage = 35;
+                break;
+            case "Character3":  // Add your third character stats
+                maxHealth = 150;
+                damage = 25;
+                break;
+            case "Character4":  // Add your fourth character stats
+                maxHealth = 175;
+                damage = 30;
+                break;
+            default:
+                maxHealth = 100;
+                damage = 20;
+        }
+        currentHealth = maxHealth;
+    }
+    
+    public boolean attack(Character target) {
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastAttackTime >= attackSpeed) {
+            target.takeDamage(damage);
+            lastAttackTime = currentTime;
+            return true;
+        }
+        return false;
+    }
+    
+    public void takeDamage(int amount) {
+        currentHealth -= amount;
+    }
+    
+    public boolean isDead() {
+        return currentHealth <= 0;
+    }
 }
-
