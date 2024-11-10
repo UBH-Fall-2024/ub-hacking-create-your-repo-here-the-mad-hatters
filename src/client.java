@@ -1,3 +1,4 @@
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -23,6 +24,7 @@ public class client extends JFrame {
     // Menu Stuff
     private JLabel title;
     private JButton goToField;
+    private BufferedImage backgroundImage;
 
     // Game state variables
     ArrayList<Character> charactersOnField = new ArrayList<>();
@@ -55,31 +57,34 @@ public class client extends JFrame {
         //image = ???
 
         // Menu Intitiliazation
-        menu = new JPanel();
+        menu = new ImageBackgroundPanel("src/Background.png");
         menu.setLayout(null);
-        //set background image or color ???
+        repaint();
+
         title = new JLabel("Welcome To Wonderland");
         Font aliceFont = new Font("Serif", Font.PLAIN, 100);
         try {
             // Load the font file from the resources or file system
             aliceFont = Font.createFont(Font.TRUETYPE_FONT, new File("src/AW-Font.ttf"));
-            aliceFont = aliceFont.deriveFont(100f); // Set the font size
+            aliceFont = aliceFont.deriveFont(140f); // Set the font size
         } catch (FontFormatException | IOException e) {
             e.printStackTrace();
         }
         title.setFont(aliceFont);
         title.setForeground(Color.CYAN);// Text Color
-        title.setHorizontalAlignment(SwingConstants.CENTER);
         title.setSize(1150, 100);
-        title.setLocation(200, 50);
+        title.setHorizontalAlignment(SwingConstants.CENTER);
+        title.setLocation(200, 150);
         title.setVisible(true);
+        menu.add(title);
 
         goToField = new JButton("Start");
-        goToField.setSize(350,100);
-        goToField.setLocation(getWidth() / 2 - getWidth() / 20, getHeight() / 2 + getHeight() / 20);
+        goToField.setSize(400, 200);
+        goToField.setLocation(550, 350);
         goToField.setFont(aliceFont);
         goToField.setBackground(Color.GREEN);
         goToField.setForeground(Color.MAGENTA);
+        goToField.setVisible(true);
         goToField.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent e){
                 c.show(cards, "2");
@@ -130,6 +135,7 @@ public class client extends JFrame {
                 }
             }
         });
+        menu.add(goToField);
 
         // Field Intitilization
         field = new GamePanel();
@@ -146,63 +152,6 @@ public class client extends JFrame {
         repaint();
 
     }
-
-    // Start the client
-    // public void start() {
-    //     try {
-    //         // Establish a connection to the server
-    //         socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
-    //         out = new ObjectOutputStream(socket.getOutputStream());
-    //         in = new ObjectInputStream(socket.getInputStream());
-
-    //         // Receive player ID from server
-    //         playerId = (Integer) in.readObject();
-    //         System.out.println("Connected as Player " + playerId);
-
-    //         // Set up the game window
-    //         JFrame frame = new JFrame("Game Title");//SET TITLE
-    //         frame.setSize(WIDTH, HEIGHT);
-    //         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    //         frame.add(new GamePanel());
-    //         frame.setVisible(true);
-    //         // Make sure the frame can get key events
-    //         frame.setFocusable(true);
-    //         frame.requestFocusInWindow();
-
-    //         // Start listening for server messages
-    //         new Thread(new ServerListener(frame)).start();
-
-    //         // Handle key events for paddle movement
-    //         frame.addKeyListener(new KeyAdapter() {
-    //             ArrayList<Character> newChars = new ArrayList<>();
-    //             @Override
-    //             public void keyPressed(KeyEvent e) {
-    //                 String action = null;
-    //                 //CHANGE AS NEEDED
-    //                 if (e.getKeyCode() == KeyEvent.VK_UP) {
-    //                     newChars.add(new Character("Alice"));
-    //                 } else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-    //                     action = "DOWN";
-    //                 }
-
-    //                 // Send player action to the server
-    //                 if (action != null) {
-    //                     try {//SEND PLAYER ACTION
-    //                         System.out.println("SEND ACTION");
-    //                         PlayerAction act = new PlayerAction(playerId);
-    //                         act.charactersOnField = newChars;
-    //                         out.writeObject(act);
-    //                         out.flush();
-    //                     } catch (IOException ex) {
-    //                         ex.printStackTrace();
-    //                     }
-    //                 }
-    //             }
-    //         });
-    //     } catch (IOException | ClassNotFoundException e) {
-    //         e.printStackTrace();
-    //     }
-    // }
 
     // Thread to listen for game state updates from the server
     private class ServerListener implements Runnable {
@@ -272,6 +221,30 @@ public class client extends JFrame {
             }
             //characters all drawn
 
+        }
+    }
+}
+
+class ImageBackgroundPanel extends JPanel {
+    private Image backgroundImage;
+
+    // Constructor to load the image
+    public ImageBackgroundPanel(String imagePath) {
+        try {
+            // Load the image from the file system (or use a resource path)
+            backgroundImage = ImageIO.read(new File(imagePath));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Override paintComponent to draw the background image
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g); // Call the superclass method to ensure the panel is properly rendered
+        if (backgroundImage != null) {
+            // Draw the background image (it will be resized to fill the panel)
+            g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
         }
     }
 }
