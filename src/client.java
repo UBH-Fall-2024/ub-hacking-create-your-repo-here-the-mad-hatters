@@ -32,10 +32,23 @@ public class client extends JFrame {
     private int playerId;
     private volatile boolean connected = false;
 
+    // Towers
+    private Tower leftTower;   // Tower on the left side (Player 1's tower)
+    private Tower rightTower;  // Tower on the right side (Player 2's tower)
+    private BufferedImage towerImage;
+
     public client() {
         setTitle("Wonderland Game");
         setSize(WIDTH, HEIGHT);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        
+        // Load tower image
+       // try {
+            //towerImage = ImageIO.read(new File("src/tower.png"));  // Load tower image
+            towerImage = null;
+        // } catch (IOException e) {
+        //     e.printStackTrace();
+        // }
         
         initializeUI();
         addWindowListener(new WindowAdapter() {
@@ -111,17 +124,20 @@ public class client extends JFrame {
         try {
             socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
             out = new ObjectOutputStream(socket.getOutputStream());
-            out.flush(); // Important: flush the header
+            out.flush();
             in = new ObjectInputStream(socket.getInputStream());
 
-            playerId = in.readInt(); // Changed from readObject to readInt
+            playerId = in.readInt();
             System.out.println("Connected as Player " + playerId);
+            
+            // Initialize both towers with consistent positions
+            leftTower = new Tower(1);   // Player 1's tower always on left
+            rightTower = new Tower(2);  // Player 2's tower always on right
             
             connected = true;
             cardLayout.show(cards, "GAME");
             field.requestFocusInWindow();
 
-            // Start server listener in a separate thread
             new Thread(new ServerListener()).start();
         } catch (IOException e) {
             e.printStackTrace();
@@ -129,55 +145,84 @@ public class client extends JFrame {
         }
     }
 
-    private long lastSpawnTime = 0;
-    private static final long SPAWN_COOLDOWN = 2000; // 2 seconds cooldown
-    private JButton spawnButton, spawnButton2; // Make this a class field so we can update its state
+    // Separate cooldown timers for each character type
+    private long lastAliceSpawnTime = 0;
+    private long lastDragonSpawnTime = 0;
+    private static final long ALICE_SPAWN_COOLDOWN = 2000; // 2 seconds cooldown
+    private static final long DRAGON_SPAWN_COOLDOWN = 2000; // 2 seconds cooldown
+    private JButton spawnButton, spawnButton2;
+    // Characters 3 and 4 variables
+    private JButton spawnButton3, spawnButton4;
+    private static final long CHARACTER3_SPAWN_COOLDOWN = 2000;
+    private static final long CHARACTER4_SPAWN_COOLDOWN = 2000;
+    private long lastChar3SpawnTime = 0;
+    private long lastChar4SpawnTime = 0;
 
     private void initializeField() {
         field = new GamePanel();
         field.setFocusable(true);
         field.setLayout(null);
         
-        // Create spawn button Alice
-        spawnButton = new JButton("Spawn Alice (Ready)");
-        spawnButton.setSize(200, 50);
-        spawnButton.setLocation(100, 700);
-        spawnButton.setFont(new Font("Arial", Font.BOLD, 16));
-        spawnButton.setBackground(Color.PINK);
-        spawnButton.setForeground(Color.BLACK);
-        spawnButton.setVisible(true);
+        // Create all spawn buttons
+        createSpawnButton("Alice", 300, 700);
+        createSpawnButton("Dragon", 525, 700);
+        createSpawnButton("Character3", 750, 700);
+        createSpawnButton("Character4", 975, 700);
         
-        spawnButton.addActionListener(e -> handleSpawnButtonClick("Alice"));
-        
-        field.add(spawnButton);
         field.addKeyListener(new GameKeyListener());
+    }
 
-        // Create spawn button Dragon
-        spawnButton2 = new JButton("Spawn Dragon (Ready)");
-        spawnButton2.setSize(200, 50);
-        spawnButton2.setLocation(400, 700);
-        spawnButton2.setFont(new Font("Arial", Font.BOLD, 16));
-        spawnButton2.setBackground(Color.PINK);
-        spawnButton2.setForeground(Color.BLACK);
-        spawnButton2.setVisible(true);
+    private JButton createSpawnButton(String characterName, int x, int y) {
+        JButton button = new JButton("Spawn " + characterName + " (Ready)");
+        button.setSize(200, 50);
+        button.setLocation(x, y);
+        button.setFont(new Font("Arial", Font.BOLD, 16));
+        button.setBackground(Color.PINK);
+        button.setForeground(Color.BLACK);
+        button.setVisible(true);
+        button.addActionListener(e -> handleSpawnButtonClick(characterName));
+        field.add(button);
         
-        spawnButton2.addActionListener(e -> handleSpawnButtonClick("Dragon"));
+        switch(characterName) {
+            case "Alice": spawnButton = button; break;
+            case "Dragon": spawnButton2 = button; break;
+            case "Character3": spawnButton3 = button; break;
+            case "Character4": spawnButton4 = button; break;
+        }
         
-        field.add(spawnButton2);
+        return button;
     }
 
     private void handleSpawnButtonClick(String name) {
         if (!connected) return;
 
         long currentTime = System.currentTimeMillis();
-        long timeSinceLastSpawn = currentTime - lastSpawnTime;
+        long timeSinceLastSpawn;
+        long cooldownTime;
 
-        if (timeSinceLastSpawn >= SPAWN_COOLDOWN) {
+        // Determine which cooldown to use
+        if (name.equals("Alice")) {
+            timeSinceLastSpawn = currentTime - lastAliceSpawnTime;
+            cooldownTime = ALICE_SPAWN_COOLDOWN;
+        } else {
+            timeSinceLastSpawn = currentTime - lastDragonSpawnTime;
+            cooldownTime = DRAGON_SPAWN_COOLDOWN;
+        }
+
+        if (timeSinceLastSpawn >= cooldownTime) {
             try {
                 Character newCharacter = new Character(name);
-                newCharacter.x = 100;
-                newCharacter.y = 500;
-                newCharacter.direction = 2;
+                
+                // Set spawn position and direction based on player ID
+                System.out.println("ID: " + playerId);
+                if (playerId == 1) {
+                    newCharacter.x = 100;  // Player 1 spawns on left
+                    newCharacter.direction = 2;  // Moving right
+                } else {
+                    newCharacter.x = 1275;  // Player 2 spawns on right
+                    newCharacter.direction = 1;  // Moving left
+                }
+                newCharacter.y = 500;  // Vertical position remains the same
                 
                 ArrayList<Character> newChars = new ArrayList<>();
                 newChars.add(newCharacter);
@@ -190,26 +235,24 @@ public class client extends JFrame {
                 out.writeObject(action);
                 out.flush();
 
-                // Update cooldown state
-                lastSpawnTime = currentTime;
-                if(name.equals("Alice")){
+                // Update the appropriate cooldown timer
+                if (name.equals("Alice")) {
+                    lastAliceSpawnTime = currentTime;
                     spawnButton.setEnabled(false);
-                    spawnButton.setText("Spawn " + name + " (Cooldown)");
-                    // Start cooldown timer
-                    Timer cooldownTimer = new Timer((int)SPAWN_COOLDOWN, evt -> {
+                    spawnButton.setText("Spawn Alice (Cooldown)");
+                    Timer cooldownTimer = new Timer((int)ALICE_SPAWN_COOLDOWN, evt -> {
                         spawnButton.setEnabled(true);
-                        spawnButton.setText("Spawn "+ name + " (Ready)");
+                        spawnButton.setText("Spawn Alice (Ready)");
                     });
                     cooldownTimer.setRepeats(false);
                     cooldownTimer.start();
-                }
-                if(name.equals("Dragon")){
+                } else {
+                    lastDragonSpawnTime = currentTime;
                     spawnButton2.setEnabled(false);
-                    spawnButton2.setText("Spawn " + name + " (Cooldown)");
-                    // Start cooldown timer
-                    Timer cooldownTimer = new Timer((int)SPAWN_COOLDOWN, evt -> {
+                    spawnButton2.setText("Spawn Dragon (Cooldown)");
+                    Timer cooldownTimer = new Timer((int)DRAGON_SPAWN_COOLDOWN, evt -> {
                         spawnButton2.setEnabled(true);
-                        spawnButton2.setText("Spawn "+ name + " (Ready)");
+                        spawnButton2.setText("Spawn Dragon (Ready)");
                     });
                     cooldownTimer.setRepeats(false);
                     cooldownTimer.start();
@@ -300,8 +343,10 @@ public class client extends JFrame {
         public GamePanel() {
             try {
                 backgroundImage = ImageIO.read(new File("src/Background.png"));
+                //towerImage = ImageIO.read(new File("src/tower.png"));
+                towerImage = null;
             } catch (IOException e) {
-                throw new RuntimeException("Failed to load background image", e);
+                throw new RuntimeException("Failed to load images", e);
             }
         }
 
@@ -314,28 +359,193 @@ public class client extends JFrame {
                 g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
             }
 
-            // Draw characters
+            // Draw towers
+            drawTower(g, leftTower);
+            drawTower(g, rightTower);
+
+            // Draw characters and their health bars
             for (Character character : charactersOnField) {
-                try {
-                    BufferedImage sprite;
-                    String imagePath = character.direction == 1 ?
-                        "src/" + character.Name + "-Left-" + spriteNum + ".png" :
-                        "src/" + character.Name + "-Right-" + spriteNum + ".png";
+                drawCharacter(g, character);
+                handleCharacterCombat(character);
+            }
+            
+            // Clean up dead characters
+            charactersOnField.removeIf(Character::isDead);
+        }
+
+        private void drawCharacter(Graphics g, Character character) {
+            try {
+                // Draw character sprite
+                BufferedImage sprite;
+                String imagePath = character.direction == 1 ?
+                    "src/" + character.Name + "-Left-" + spriteNum + ".png" :
+                    "src/" + character.Name + "-Right-" + spriteNum + ".png";
+                
+                sprite = ImageIO.read(new File(imagePath));
+                g.drawImage(sprite, 
+                          (int)character.x, 
+                          (int)character.y, 
+                          character.size * character.scale, 
+                          character.size * character.scale, 
+                          null);
+                
+                // Draw health bar above character
+                int healthBarWidth = 60;
+                int healthBarHeight = 8;
+                int healthBarX = (int)character.x + (character.size * character.scale - healthBarWidth) / 2;
+                int healthBarY = (int)character.y - 15;
+                
+                // Background
+                g.setColor(Color.RED);
+                g.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+                
+                // Current health
+                g.setColor(Color.GREEN);
+                int currentHealthWidth = (int)((character.currentHealth / (float)character.maxHealth) * healthBarWidth);
+                g.fillRect(healthBarX, healthBarY, currentHealthWidth, healthBarHeight);
+                
+                // Border
+                g.setColor(Color.BLACK);
+                g.drawRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+                
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        private void handleCharacterCombat(Character character) {
+            // Check for tower collision
+            Rectangle charBounds = new Rectangle(
+                (int)character.x,
+                (int)character.y,
+                character.size * character.scale,
+                character.size * character.scale
+            );
+            
+            // Tower collision
+            Tower targetTower = character.direction == 1 ? leftTower : rightTower;
+            Rectangle towerBounds = new Rectangle(
+                targetTower.x,
+                targetTower.y,
+                targetTower.width,
+                targetTower.height
+            );
+            
+            if (charBounds.intersects(towerBounds)) {
+                targetTower.takeDamage(character.damage);
+                character.currentHealth = 0; // Die on impact
+                return;
+            }
+            
+            // Character combat
+            for (Character otherChar : charactersOnField) {
+                if (otherChar != character && character.direction != otherChar.direction) {
+                    Rectangle otherBounds = new Rectangle(
+                        (int)otherChar.x,
+                        (int)otherChar.y,
+                        otherChar.size * otherChar.scale,
+                        otherChar.size * otherChar.scale
+                    );
                     
-                    sprite = ImageIO.read(new File(imagePath));
-                    g.drawImage(sprite, 
-                              (int)character.x, 
-                              (int)character.y, 
-                              character.size * character.scale, 
-                              character.size * character.scale, 
-                              null);
-                } catch (IOException e) {
-                    e.printStackTrace();
+                    if (charBounds.intersects(otherBounds)) {
+                        // Both characters attack each other
+                        character.attack(otherChar);
+                        otherChar.attack(character);
+                    }
                 }
+            }
+        }
+
+        private void drawTower(Graphics g, Tower tower) {
+            // Draw tower base
+            if (towerImage != null) {
+                g.drawImage(towerImage, tower.x, tower.y, tower.width, tower.height, null);
+            } else {
+                // Fallback rectangle if image fails to load
+                g.setColor(tower.playerId == 1 ? new Color(0, 0, 255, 180) : new Color(255, 0, 0, 180));
+                g.fillRect(tower.x, tower.y, tower.width, tower.height);
+            }
+
+            // Draw health bar
+            int healthBarWidth = 150;  // Made wider for better visibility
+            int healthBarHeight = 25;
+            int healthBarX = tower.x + (tower.width - healthBarWidth) / 2;
+            int healthBarY = tower.y - 40;  // Moved up slightly
+
+            // Health bar background
+            g.setColor(new Color(0, 0, 0, 100));  // Semi-transparent black
+            g.fillRect(healthBarX - 2, healthBarY - 2, healthBarWidth + 4, healthBarHeight + 4);
+
+            // Empty health bar
+            g.setColor(new Color(80, 80, 80));
+            g.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+
+            // Current health
+            float healthPercentage = tower.currentHealth / (float)tower.maxHealth;
+            Color healthColor = new Color(
+                (int)(255 * (1 - healthPercentage)),  // Red component
+                (int)(255 * healthPercentage),        // Green component
+                0                                     // Blue component
+            );
+            g.setColor(healthColor);
+            int currentHealthWidth = (int)(healthPercentage * healthBarWidth);
+            g.fillRect(healthBarX, healthBarY, currentHealthWidth, healthBarHeight);
+
+            // Health bar border
+            g.setColor(Color.WHITE);
+            g.drawRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+
+            // Health text
+            String healthText = tower.currentHealth + "/" + tower.maxHealth;
+            g.setFont(new Font("Arial", Font.BOLD, 16));
+            FontMetrics fm = g.getFontMetrics();
+            int textX = healthBarX + (healthBarWidth - fm.stringWidth(healthText)) / 2;
+            int textY = healthBarY + ((healthBarHeight + fm.getAscent()) / 2) - 2;
+            
+            // Text outline for better visibility
+            g.setColor(Color.BLACK);
+            g.drawString(healthText, textX - 1, textY - 1);
+            g.drawString(healthText, textX - 1, textY + 1);
+            g.drawString(healthText, textX + 1, textY - 1);
+            g.drawString(healthText, textX + 1, textY + 1);
+            
+            // Text
+            g.setColor(Color.WHITE);
+            g.drawString(healthText, textX, textY);
+            
+            // Draw tower owner label
+            String ownerText = "Player " + tower.playerId;
+            textX = tower.x + (tower.width - fm.stringWidth(ownerText)) / 2;
+            textY = tower.y - 60;
+            g.setColor(tower.playerId == 1 ? Color.BLUE : Color.RED);
+            g.drawString(ownerText, textX, textY);
+        }
+
+        private void checkTowerCollisions(Character character) {
+            Rectangle characterBounds = new Rectangle(
+                (int)character.x,
+                (int)character.y,
+                character.size * character.scale,
+                character.size * character.scale
+            );
+
+            // Determine which tower to check based on character's direction
+            Tower targetTower = character.direction == 1 ? leftTower : rightTower;
+            Rectangle towerBounds = new Rectangle(
+                targetTower.x,
+                targetTower.y,
+                targetTower.width,
+                targetTower.height
+            );
+
+            if (characterBounds.intersects(towerBounds)) {
+                targetTower.takeDamage(1);
+                charactersOnField.remove(character);
             }
         }
     }
 }
+
 class ImageBackgroundPanel extends JPanel {
     private Image backgroundImage;
 
@@ -357,5 +567,38 @@ class ImageBackgroundPanel extends JPanel {
             // Draw the background image (it will be resized to fill the panel)
             g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
         }
+    }
+}
+
+class Tower implements Serializable {
+    private static final long serialVersionUID = 1L;
+    int x;
+    int y;
+    int width = 150;
+    int height = 300;
+    int maxHealth = 1000;
+    int currentHealth;
+    int playerId;  // 1 for left tower, 2 for right tower
+
+    public Tower(int playerId) {
+        this.playerId = playerId;
+        this.currentHealth = maxHealth;
+        
+        // Consistent positions for all players
+        if (playerId == 1) {
+            x = 50;  // Left tower always at left side
+        } else {
+            x = 1325;  // Right tower always at right side
+        }
+        y = 400;
+    }
+
+    public void takeDamage(int damage) {
+        currentHealth -= damage;
+        if (currentHealth < 0) currentHealth = 0;
+    }
+
+    public boolean isDestroyed() {
+        return currentHealth <= 0;
     }
 }

@@ -121,7 +121,7 @@ public class server {  // Changed from lowercase 'server' to uppercase 'Server'
         private void handlePlayerAction(PlayerAction action) {
             synchronized (charactersOnField) {
                 for (Character c : action.charactersOnField) {
-                    charactersOnField.add(new Character(c.Name));  // Create a deep copy of the character
+                    charactersOnField.add(c);  // Create a deep copy of the character
                 }
             }
         }
