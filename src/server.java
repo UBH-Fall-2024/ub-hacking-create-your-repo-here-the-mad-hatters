@@ -1,4 +1,3 @@
-import java.awt.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -7,8 +6,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class server {  // Changed from lowercase 'server' to uppercase 'Server'
     private static final int SERVER_PORT = 12345;
-    private static final int WIDTH = Toolkit.getDefaultToolkit().getScreenSize().width;
-    private static final int HEIGHT = Toolkit.getDefaultToolkit().getScreenSize().height;
     private static final int FPS = 60;
     private static final ArrayList<ClientHandler> clients = new ArrayList<>();
 
@@ -17,7 +14,7 @@ public class server {  // Changed from lowercase 'server' to uppercase 'Server'
     
     public static void main(String[] args) {
         // Testing Characters
-        Character c = new Character("Alice");
+        Character c = new Character("Alice", 1);
         charactersOnField.add(c);
 
         try (ServerSocket serverSocket = new ServerSocket(SERVER_PORT)) {

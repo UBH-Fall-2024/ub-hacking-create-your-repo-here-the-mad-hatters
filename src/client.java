@@ -20,6 +20,8 @@ public class client extends JFrame {
     private CardLayout cardLayout;
     private JPanel menu, field;
     private volatile boolean isRunning = true;
+    private JPanel gameField; // Store reference to game field
+    private boolean gameFieldInitialized = false; // Track initialization state
 
     // Game state variables
     private volatile List<Character> charactersOnField = new CopyOnWriteArrayList<>();
@@ -42,38 +44,27 @@ public class client extends JFrame {
         setSize(WIDTH, HEIGHT);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
-        // Load tower image
-       // try {
-            //towerImage = ImageIO.read(new File("src/tower.png"));  // Load tower image
-            towerImage = null;
-        // } catch (IOException e) {
-        //     e.printStackTrace();
-        // }
+        // Only initialize menu at startup
+        cardLayout = new CardLayout();
+        cards = new JPanel(cardLayout);
         
-        initializeUI();
+        initializeMenu();
+        
+        // Create empty game field panel - will be initialized after connection
+        gameField = new JPanel();
+        
+        cards.add(menu, "MENU");
+        cards.add(gameField, "GAME");
+        
+        add(cards);
+        cardLayout.show(cards, "MENU");
+        
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
                 disconnect();
             }
         });
-    }
-
-    private void initializeUI() {
-        cardLayout = new CardLayout();
-        cards = new JPanel(cardLayout);
-        
-        // Initialize menu
-        initializeMenu();
-        
-        // Initialize game field
-        initializeField();
-        
-        cards.add(menu, "MENU");
-        cards.add(field, "GAME");
-        
-        add(cards);
-        cardLayout.show(cards, "MENU");
     }
 
     private void initializeMenu() {
@@ -130,15 +121,42 @@ public class client extends JFrame {
             playerId = in.readInt();
             System.out.println("Connected as Player " + playerId);
             
-            // Initialize both towers with consistent positions
-            leftTower = new Tower(1);   // Player 1's tower always on left
-            rightTower = new Tower(2);  // Player 2's tower always on right
+            // Initialize towers after player ID is known
+            leftTower = new Tower(1);
+            rightTower = new Tower(2);
             
             connected = true;
+            
+            // Initialize game field now that we have playerId
+            if (!gameFieldInitialized) {
+                field = new GamePanel();
+                field.setFocusable(true);
+                field.setLayout(null);
+                
+                // Create spawn buttons with correct character names based on known playerId
+                if (playerId == 1) {
+                    createSpawnButton("CHAR1", "Alice", 300, 700);
+                    createSpawnButton("CHAR2", "Dragon", 525, 700);
+                    createSpawnButton("CHAR3", "White Rabbit", 750, 700);
+                    createSpawnButton("CHAR4", "Cheshire Cat", 975, 700);
+                } else {
+                    createSpawnButton("CHAR1", "Mad Hatter", 300, 700);
+                    createSpawnButton("CHAR2", "Jabberwocky", 525, 700);
+                    createSpawnButton("CHAR3", "Red Queen", 750, 700);
+                    createSpawnButton("CHAR4", "Knave", 975, 700);
+                }
+                
+                // Replace the empty panel with initialized game field
+                cards.remove(gameField);
+                cards.add(field, "GAME");
+                gameFieldInitialized = true;
+            }
+            
             cardLayout.show(cards, "GAME");
             field.requestFocusInWindow();
 
             new Thread(new ServerListener()).start();
+            
         } catch (IOException e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Failed to connect to server: " + e.getMessage());
@@ -163,66 +181,92 @@ public class client extends JFrame {
         field.setFocusable(true);
         field.setLayout(null);
         
-        // Create all spawn buttons
-        createSpawnButton("Alice", 300, 700);
-        createSpawnButton("Dragon", 525, 700);
-        createSpawnButton("Character3", 750, 700);
-        createSpawnButton("Character4", 975, 700);
+        // Define character names for each player
+        String[] player1Characters = {"Alice", "Dragon", "White Rabbit", "Cheshire Cat"};
+        String[] player2Characters = {"Mad Hatter", "Jabberwocky", "Red Queen", "Knave"};
         
-        field.addKeyListener(new GameKeyListener());
+        // Use the appropriate character names based on player ID
+        String[] characterNames = ((playerId == 1) ? player1Characters : player2Characters);
+        
+        // Create spawn buttons with correct character names
+        createSpawnButton("CHAR1", characterNames[0], 300, 700);
+        createSpawnButton("CHAR2", characterNames[1], 525, 700);
+        createSpawnButton("CHAR3", characterNames[2], 750, 700);
+        createSpawnButton("CHAR4", characterNames[3], 975, 700);
     }
 
-    private JButton createSpawnButton(String characterName, int x, int y) {
-        JButton button = new JButton("Spawn " + characterName + " (Ready)");
+    private JButton createSpawnButton(String charType, String displayName, int x, int y) {
+        JButton button = new JButton("Spawn " + displayName + " (Ready)");
         button.setSize(200, 50);
         button.setLocation(x, y);
         button.setFont(new Font("Arial", Font.BOLD, 16));
         button.setBackground(Color.PINK);
         button.setForeground(Color.BLACK);
         button.setVisible(true);
-        button.addActionListener(e -> handleSpawnButtonClick(characterName));
+        
+        // Store character name for use in cooldown text
+        button.putClientProperty("characterName", displayName);
+        
+        button.addActionListener(e -> handleSpawnButtonClick(charType));
         field.add(button);
         
-        switch(characterName) {
-            case "Alice": spawnButton = button; break;
-            case "Dragon": spawnButton2 = button; break;
-            case "Character3": spawnButton3 = button; break;
-            case "Character4": spawnButton4 = button; break;
+        switch(charType) {
+            case "CHAR1": spawnButton = button; break;
+            case "CHAR2": spawnButton2 = button; break;
+            case "CHAR3": spawnButton3 = button; break;
+            case "CHAR4": spawnButton4 = button; break;
         }
         
         return button;
     }
 
-    private void handleSpawnButtonClick(String name) {
+    private void handleSpawnButtonClick(String charType) {
         if (!connected) return;
-
+    
         long currentTime = System.currentTimeMillis();
         long timeSinceLastSpawn;
         long cooldownTime;
-
-        // Determine which cooldown to use
-        if (name.equals("Alice")) {
-            timeSinceLastSpawn = currentTime - lastAliceSpawnTime;
-            cooldownTime = ALICE_SPAWN_COOLDOWN;
-        } else {
-            timeSinceLastSpawn = currentTime - lastDragonSpawnTime;
-            cooldownTime = DRAGON_SPAWN_COOLDOWN;
+    
+        // Get appropriate cooldown time and button
+        JButton buttonToUpdate = null;
+        switch(charType) {
+            case "CHAR1": 
+                timeSinceLastSpawn = currentTime - lastAliceSpawnTime;
+                cooldownTime = ALICE_SPAWN_COOLDOWN;
+                buttonToUpdate = spawnButton;
+                break;
+            case "CHAR2":
+                timeSinceLastSpawn = currentTime - lastDragonSpawnTime;
+                cooldownTime = DRAGON_SPAWN_COOLDOWN;
+                buttonToUpdate = spawnButton2;
+                break;
+            case "CHAR3":
+                timeSinceLastSpawn = currentTime - lastChar3SpawnTime;
+                cooldownTime = CHARACTER3_SPAWN_COOLDOWN;
+                buttonToUpdate = spawnButton3;
+                break;
+            case "CHAR4":
+                timeSinceLastSpawn = currentTime - lastChar4SpawnTime;
+                cooldownTime = CHARACTER4_SPAWN_COOLDOWN;
+                buttonToUpdate = spawnButton4;
+                break;
+            default:
+                return;
         }
-
-        if (timeSinceLastSpawn >= cooldownTime) {
+    
+        if (timeSinceLastSpawn >= cooldownTime && buttonToUpdate != null) {
             try {
-                Character newCharacter = new Character(name);
+                Character newCharacter = new Character(charType, playerId);
                 
                 // Set spawn position and direction based on player ID
-                System.out.println("ID: " + playerId);
                 if (playerId == 1) {
-                    newCharacter.x = 100;  // Player 1 spawns on left
-                    newCharacter.direction = 2;  // Moving right
+                    newCharacter.x = 100;
+                    newCharacter.direction = 2;
                 } else {
-                    newCharacter.x = 1275;  // Player 2 spawns on right
-                    newCharacter.direction = 1;  // Moving left
+                    newCharacter.x = 1275;
+                    newCharacter.direction = 1;
                 }
-                newCharacter.y = 500;  // Vertical position remains the same
+                newCharacter.y = 500;
                 
                 ArrayList<Character> newChars = new ArrayList<>();
                 newChars.add(newCharacter);
@@ -230,32 +274,30 @@ public class client extends JFrame {
                 PlayerAction action = new PlayerAction(playerId);
                 action.charactersOnField = newChars;
                 
-                System.out.println("Spawning new " + name);
                 out.reset();
                 out.writeObject(action);
                 out.flush();
-
+    
+                // Get the stored character name from the button
+                String displayName = (String) buttonToUpdate.getClientProperty("characterName");
+                
+                buttonToUpdate.setEnabled(false);
+                buttonToUpdate.setText("Spawn " + displayName + " (Cooldown)");
+                
+                final JButton finalButton = buttonToUpdate;
+                Timer cooldownTimer = new Timer((int)cooldownTime, evt -> {
+                    finalButton.setEnabled(true);
+                    finalButton.setText("Spawn " + displayName + " (Ready)");
+                });
+                cooldownTimer.setRepeats(false);
+                cooldownTimer.start();
+    
                 // Update the appropriate cooldown timer
-                if (name.equals("Alice")) {
-                    lastAliceSpawnTime = currentTime;
-                    spawnButton.setEnabled(false);
-                    spawnButton.setText("Spawn Alice (Cooldown)");
-                    Timer cooldownTimer = new Timer((int)ALICE_SPAWN_COOLDOWN, evt -> {
-                        spawnButton.setEnabled(true);
-                        spawnButton.setText("Spawn Alice (Ready)");
-                    });
-                    cooldownTimer.setRepeats(false);
-                    cooldownTimer.start();
-                } else {
-                    lastDragonSpawnTime = currentTime;
-                    spawnButton2.setEnabled(false);
-                    spawnButton2.setText("Spawn Dragon (Cooldown)");
-                    Timer cooldownTimer = new Timer((int)DRAGON_SPAWN_COOLDOWN, evt -> {
-                        spawnButton2.setEnabled(true);
-                        spawnButton2.setText("Spawn Dragon (Ready)");
-                    });
-                    cooldownTimer.setRepeats(false);
-                    cooldownTimer.start();
+                switch(charType) {
+                    case "CHAR1": lastAliceSpawnTime = currentTime; break;
+                    case "CHAR2": lastDragonSpawnTime = currentTime; break;
+                    case "CHAR3": lastChar3SpawnTime = currentTime; break;
+                    case "CHAR4": lastChar4SpawnTime = currentTime; break;
                 }
                 
             } catch (IOException ex) {
@@ -314,29 +356,6 @@ public class client extends JFrame {
         }
     }
 
-    private class GameKeyListener extends KeyAdapter {
-        @Override
-        public void keyPressed(KeyEvent e) {
-            if (!connected) return;
-
-            try {
-                if (e.getKeyCode() == KeyEvent.VK_UP) {
-                    ArrayList<Character> newChars = new ArrayList<>();
-                    newChars.add(new Character("Alice"));
-                    PlayerAction action = new PlayerAction(playerId);
-                    action.charactersOnField = newChars;
-                    
-                    out.reset(); // Reset the stream to prevent caching
-                    out.writeObject(action);
-                    out.flush();
-                }
-            } catch (IOException ex) {
-                ex.printStackTrace();
-                connected = false;
-            }
-        }
-    }
-
     private class GamePanel extends JPanel {
         private final Image backgroundImage;
 
@@ -368,6 +387,27 @@ public class client extends JFrame {
                 drawCharacter(g, character);
                 handleCharacterCombat(character);
             }
+
+            // Draw ranged attack indicators
+            for (Character character : charactersOnField) {
+                if (character.isRanged && character.isInCombat) {
+                    g.setColor(new Color(255, 0, 0, 100)); // Semi-transparent red
+                    // Draw an attack line from the character to their target
+                    for (Character target : charactersOnField) {
+                        if (target != character && character.direction != target.direction) {
+                            double distance = calculateDistance(character, target);
+                            if (distance <= character.attackRange) {
+                                g.drawLine(
+                                    (int)(character.x + character.size * character.scale / 2),
+                                    (int)(character.y + character.size * character.scale / 2),
+                                    (int)(target.x + target.size * target.scale / 2),
+                                    (int)(target.y + target.size * target.scale / 2)
+                                );
+                            }
+                        }
+                    }
+                }
+            }
             
             // Clean up dead characters
             charactersOnField.removeIf(Character::isDead);
@@ -382,12 +422,19 @@ public class client extends JFrame {
                     "src/" + character.Name + "-Right-" + spriteNum + ".png";
                 
                 sprite = ImageIO.read(new File(imagePath));
-                g.drawImage(sprite, 
+                if(sprite != null){
+                    g.drawImage(sprite, 
                           (int)character.x, 
                           (int)character.y, 
                           character.size * character.scale, 
                           character.size * character.scale, 
                           null);
+                }
+                else{
+                    g.fillRect((int)character.x, (int)character.y, 
+                    character.size * character.scale, character.size * character.scale);
+                }
+
                 
                 // Draw health bar above character
                 int healthBarWidth = 60;
@@ -423,7 +470,7 @@ public class client extends JFrame {
                     character.size * character.scale
                 );
                 
-                // Tower collision
+                // Tower collision (even ranged units need to be in normal range to hit tower)
                 Tower targetTower = character.direction == 1 ? leftTower : rightTower;
                 Rectangle towerBounds = new Rectangle(
                     targetTower.x,
@@ -436,15 +483,10 @@ public class client extends JFrame {
                 if (charBounds.intersects(towerBounds)) {
                     character.isInCombat = true;
                     targetTower.takeDamage(character.damage);
-                    character.currentHealth = 0;
+                    character.currentHealth = 0; // Units die when hitting tower
                     
                     // Send combat update to server
-                    PlayerAction action = new PlayerAction(playerId);
-                    action.type = "COMBAT_UPDATE";
-                    action.charactersOnField = new ArrayList<>(charactersOnField);
-                    out.reset();
-                    out.writeObject(action);
-                    out.flush();
+                    sendCombatUpdate();
                     return;
                 }
                 
@@ -452,20 +494,36 @@ public class client extends JFrame {
                 boolean inCombat = false;
                 for (Character otherChar : charactersOnField) {
                     if (otherChar != character && character.direction != otherChar.direction) {
-                        Rectangle otherBounds = new Rectangle(
-                            (int)otherChar.x,
-                            (int)otherChar.y,
-                            otherChar.size * otherChar.scale,
-                            otherChar.size * otherChar.scale
-                        );
+                        double distance = calculateDistance(character, otherChar);
                         
-                        if (charBounds.intersects(otherBounds)) {
-                            // Both characters attack each other and stop moving
+                        // Check if characters are within their respective attack ranges
+                        boolean canAttack = character.isRanged ? 
+                            distance <= character.attackRange : 
+                            charBounds.intersects(new Rectangle(
+                                (int)otherChar.x,
+                                (int)otherChar.y,
+                                otherChar.size * otherChar.scale,
+                                otherChar.size * otherChar.scale
+                            ));
+                        
+                        if (canAttack) {
+                            // Ranged units stop at their attack range
                             character.isInCombat = true;
-                            otherChar.isInCombat = true;
                             character.attack(otherChar);
-                            otherChar.attack(character);
                             inCombat = true;
+                            
+                            // If the other character can attack back (either ranged or in melee range)
+                            if (otherChar.isRanged && distance <= otherChar.attackRange || 
+                                !otherChar.isRanged && charBounds.intersects(new Rectangle(
+                                    (int)otherChar.x,
+                                    (int)otherChar.y,
+                                    otherChar.size * otherChar.scale,
+                                    otherChar.size * otherChar.scale
+                                ))) {
+                                otherChar.isInCombat = true;
+                                otherChar.attack(character);
+                            }
+                            
                             if(otherChar.isDead() || character.isDead()){
                                 inCombat = false;
                                 character.isInCombat = false;
@@ -473,12 +531,7 @@ public class client extends JFrame {
                             }
                             
                             // Send combat update to server
-                            PlayerAction action = new PlayerAction(playerId);
-                            action.type = "COMBAT_UPDATE";
-                            action.charactersOnField = new ArrayList<>(charactersOnField);
-                            out.reset();
-                            out.writeObject(action);
-                            out.flush();
+                            sendCombatUpdate();
                         }
                     }
                 }
@@ -490,8 +543,25 @@ public class client extends JFrame {
                 e.printStackTrace();
                 connected = false;
             }
-        }       
+        } 
 
+        // Helper method to calculate distance between two characters
+        private double calculateDistance(Character char1, Character char2) {
+            double dx = char1.x - char2.x;
+            double dy = char1.y - char2.y;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        // Helper method to send combat updates to server
+        private void sendCombatUpdate() throws IOException {
+            PlayerAction action = new PlayerAction(playerId);
+            action.type = "COMBAT_UPDATE";
+            action.charactersOnField = new ArrayList<>(charactersOnField);
+            out.reset();
+            out.writeObject(action);
+            out.flush();
+        }
+        
         private void drawTower(Graphics g, Tower tower) {
             // Draw tower base
             if (towerImage != null) {
@@ -555,29 +625,6 @@ public class client extends JFrame {
             textY = tower.y - 60;
             g.setColor(tower.playerId == 1 ? Color.BLUE : Color.RED);
             g.drawString(ownerText, textX, textY);
-        }
-
-        private void checkTowerCollisions(Character character) {
-            Rectangle characterBounds = new Rectangle(
-                (int)character.x,
-                (int)character.y,
-                character.size * character.scale,
-                character.size * character.scale
-            );
-
-            // Determine which tower to check based on character's direction
-            Tower targetTower = character.direction == 1 ? leftTower : rightTower;
-            Rectangle towerBounds = new Rectangle(
-                targetTower.x,
-                targetTower.y,
-                targetTower.width,
-                targetTower.height
-            );
-
-            if (characterBounds.intersects(towerBounds)) {
-                targetTower.takeDamage(1);
-                charactersOnField.remove(character);
-            }
         }
     }
 }
