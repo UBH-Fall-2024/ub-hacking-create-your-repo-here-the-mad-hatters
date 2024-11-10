@@ -129,11 +129,99 @@ public class client extends JFrame {
         }
     }
 
+    private long lastSpawnTime = 0;
+    private static final long SPAWN_COOLDOWN = 2000; // 2 seconds cooldown
+    private JButton spawnButton, spawnButton2; // Make this a class field so we can update its state
+
     private void initializeField() {
         field = new GamePanel();
         field.setFocusable(true);
+        field.setLayout(null);
         
+        // Create spawn button Alice
+        spawnButton = new JButton("Spawn Alice (Ready)");
+        spawnButton.setSize(200, 50);
+        spawnButton.setLocation(100, 700);
+        spawnButton.setFont(new Font("Arial", Font.BOLD, 16));
+        spawnButton.setBackground(Color.PINK);
+        spawnButton.setForeground(Color.BLACK);
+        spawnButton.setVisible(true);
+        
+        spawnButton.addActionListener(e -> handleSpawnButtonClick("Alice"));
+        
+        field.add(spawnButton);
         field.addKeyListener(new GameKeyListener());
+
+        // Create spawn button Dragon
+        spawnButton2 = new JButton("Spawn Dragon (Ready)");
+        spawnButton2.setSize(200, 50);
+        spawnButton2.setLocation(400, 700);
+        spawnButton2.setFont(new Font("Arial", Font.BOLD, 16));
+        spawnButton2.setBackground(Color.PINK);
+        spawnButton2.setForeground(Color.BLACK);
+        spawnButton2.setVisible(true);
+        
+        spawnButton2.addActionListener(e -> handleSpawnButtonClick("Dragon"));
+        
+        field.add(spawnButton2);
+    }
+
+    private void handleSpawnButtonClick(String name) {
+        if (!connected) return;
+
+        long currentTime = System.currentTimeMillis();
+        long timeSinceLastSpawn = currentTime - lastSpawnTime;
+
+        if (timeSinceLastSpawn >= SPAWN_COOLDOWN) {
+            try {
+                Character newCharacter = new Character(name);
+                newCharacter.x = 100;
+                newCharacter.y = 500;
+                newCharacter.direction = 2;
+                
+                ArrayList<Character> newChars = new ArrayList<>();
+                newChars.add(newCharacter);
+                
+                PlayerAction action = new PlayerAction(playerId);
+                action.charactersOnField = newChars;
+                
+                System.out.println("Spawning new " + name);
+                out.reset();
+                out.writeObject(action);
+                out.flush();
+
+                // Update cooldown state
+                lastSpawnTime = currentTime;
+                if(name.equals("Alice")){
+                    spawnButton.setEnabled(false);
+                    spawnButton.setText("Spawn " + name + " (Cooldown)");
+                    // Start cooldown timer
+                    Timer cooldownTimer = new Timer((int)SPAWN_COOLDOWN, evt -> {
+                        spawnButton.setEnabled(true);
+                        spawnButton.setText("Spawn "+ name + " (Ready)");
+                    });
+                    cooldownTimer.setRepeats(false);
+                    cooldownTimer.start();
+                }
+                if(name.equals("Dragon")){
+                    spawnButton2.setEnabled(false);
+                    spawnButton2.setText("Spawn " + name + " (Cooldown)");
+                    // Start cooldown timer
+                    Timer cooldownTimer = new Timer((int)SPAWN_COOLDOWN, evt -> {
+                        spawnButton2.setEnabled(true);
+                        spawnButton2.setText("Spawn "+ name + " (Ready)");
+                    });
+                    cooldownTimer.setRepeats(false);
+                    cooldownTimer.start();
+                }
+                
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                connected = false;
+            }
+        }
+        
+        field.requestFocusInWindow();
     }
 
     private void disconnect() {
@@ -231,8 +319,8 @@ public class client extends JFrame {
                 try {
                     BufferedImage sprite;
                     String imagePath = character.direction == 1 ?
-                        "src/Alice-Left-" + spriteNum + ".png" :
-                        "src/Alice-Right-" + spriteNum + ".png";
+                        "src/" + character.Name + "-Left-" + spriteNum + ".png" :
+                        "src/" + character.Name + "-Right-" + spriteNum + ".png";
                     
                     sprite = ImageIO.read(new File(imagePath));
                     g.drawImage(sprite, 
