@@ -64,6 +64,8 @@ public class client extends JFrame {
         
         add(cards);
         cardLayout.show(cards, "MENU");
+
+        SoundManager.getInstance().startBackgroundMusic();
         
         addWindowListener(new WindowAdapter() {
             @Override
@@ -476,7 +478,6 @@ public class client extends JFrame {
                     targetTower.takeDamage(character.damage * character.towerDamageScale);
                     soundManager.playSound("tower_hit");
                     character.currentHealth = 0;
-                    soundManager.playSound("death");  // Also play death sound since character dies
                     sendCombatUpdate();
                     return;
                 }
@@ -676,11 +677,17 @@ class Tower implements Serializable {
 class SoundManager {
     private static SoundManager instance;
     private Map<String, Clip> soundClips;
+    private Clip backgroundMusic;
+    private FloatControl backgroundVolume;
     private boolean soundEnabled = true;
+    private boolean musicEnabled = true;
+    private float musicVolume = 0.5f; // 50% volume by default
+    private float effectsVolume = 1.0f; // 100% volume by default
 
     private SoundManager() {
         soundClips = new HashMap<>();
         initializeSounds();
+        initializeBackgroundMusic();
     }
 
     public static SoundManager getInstance() {
@@ -697,12 +704,36 @@ class SoundManager {
         loadSound("tower_hit", "src/tower-hit.wav");
     }
 
+    private void initializeBackgroundMusic() {
+        try {
+            File musicFile = new File("src/theme-song.wav");
+            AudioInputStream ais = AudioSystem.getAudioInputStream(musicFile);
+            backgroundMusic = AudioSystem.getClip();
+            backgroundMusic.open(ais);
+            
+            // Get the volume control
+            if (backgroundMusic.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+                backgroundVolume = (FloatControl) backgroundMusic.getControl(FloatControl.Type.MASTER_GAIN);
+                setMusicVolume(musicVolume); // Set initial volume
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading background music: " + e.getMessage());
+        }
+    }
+
     private void loadSound(String soundName, String filePath) {
         try {
             File soundFile = new File(filePath);
             AudioInputStream ais = AudioSystem.getAudioInputStream(soundFile);
             Clip clip = AudioSystem.getClip();
             clip.open(ais);
+            
+            // Set the volume for sound effects
+            if (clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+                FloatControl gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+                setClipVolume(gainControl, effectsVolume);
+            }
+            
             soundClips.put(soundName, clip);
         } catch (Exception e) {
             System.err.println("Error loading sound: " + soundName + " - " + e.getMessage());
@@ -714,27 +745,97 @@ class SoundManager {
         
         Clip clip = soundClips.get(soundName);
         if (clip != null) {
-            // Stop and reset the clip before playing
             clip.stop();
             clip.setFramePosition(0);
             clip.start();
         }
     }
 
+    public void startBackgroundMusic() {
+        if (!musicEnabled || backgroundMusic == null) return;
+        
+        backgroundMusic.setFramePosition(0);
+        backgroundMusic.loop(Clip.LOOP_CONTINUOUSLY);
+    }
+
+    public void stopBackgroundMusic() {
+        if (backgroundMusic != null) {
+            backgroundMusic.stop();
+        }
+    }
+
+    public void pauseBackgroundMusic() {
+        if (backgroundMusic != null) {
+            backgroundMusic.stop();
+        }
+    }
+
+    public void resumeBackgroundMusic() {
+        if (musicEnabled && backgroundMusic != null) {
+            backgroundMusic.loop(Clip.LOOP_CONTINUOUSLY);
+        }
+    }
+
+    public void setMusicVolume(float volume) {
+        musicVolume = volume;
+        if (backgroundVolume != null) {
+            float gain = calculateGain(volume);
+            backgroundVolume.setValue(gain);
+        }
+    }
+
+    public void setEffectsVolume(float volume) {
+        effectsVolume = volume;
+        for (Clip clip : soundClips.values()) {
+            if (clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+                FloatControl gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+                setClipVolume(gainControl, volume);
+            }
+        }
+    }
+
+    private void setClipVolume(FloatControl gainControl, float volume) {
+        float gain = calculateGain(volume);
+        gainControl.setValue(gain);
+    }
+
+    private float calculateGain(float volume) {
+        // Convert linear volume (0.0 to 1.0) to dB (-80.0 to 6.0)
+        return (float) (Math.log10(Math.max(0.0001f, volume)) * 20.0f);
+    }
+
     public void toggleSound() {
         soundEnabled = !soundEnabled;
         if (!soundEnabled) {
-            // Stop all currently playing sounds
             for (Clip clip : soundClips.values()) {
                 clip.stop();
             }
         }
     }
 
+    public void toggleMusic() {
+        musicEnabled = !musicEnabled;
+        if (musicEnabled) {
+            resumeBackgroundMusic();
+        } else {
+            stopBackgroundMusic();
+        }
+    }
+
     public void cleanup() {
+        stopBackgroundMusic();
+        if (backgroundMusic != null) {
+            backgroundMusic.close();
+        }
         for (Clip clip : soundClips.values()) {
             clip.close();
         }
         soundClips.clear();
     }
+
+    // Getters for current states
+    public boolean isSoundEnabled() { return soundEnabled; }
+    public boolean isMusicEnabled() { return musicEnabled; }
+    public float getMusicVolume() { return musicVolume; }
+    public float getEffectsVolume() { return effectsVolume; }
 }
