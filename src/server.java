@@ -61,12 +61,18 @@ public class server {  // Changed from lowercase 'server' to uppercase 'Server'
 
     private static void updateGameState() {
         for (Character ch : charactersOnField) {
-            if (ch.direction == 2) {
-                ch.x += 2;
-            } else if (ch.direction == 1) {
-                ch.x -= 2;
+            // Only move if not in combat
+            if (!ch.isInCombat) {
+                if (ch.direction == 2) {
+                    ch.x += 2;
+                } else if (ch.direction == 1) {
+                    ch.x -= 2;
+                }
             }
         }
+        
+        // Remove dead characters
+        charactersOnField.removeIf(character -> character.currentHealth <= 0);
     }
 
     private static void broadcastGameState() {
@@ -120,10 +126,33 @@ public class server {  // Changed from lowercase 'server' to uppercase 'Server'
 
         private void handlePlayerAction(PlayerAction action) {
             synchronized (charactersOnField) {
-                for (Character c : action.charactersOnField) {
-                    charactersOnField.add(c);  // Create a deep copy of the character
+                if (action.type.equals("SPAWN")) {
+                    // Handle spawning new characters
+                    for (Character c : action.charactersOnField) {
+                        charactersOnField.add(c);
+                    }
+                } else if (action.type.equals("COMBAT_UPDATE")) {
+                    // Update character states from combat
+                    List<Character> updatedCharacters = action.charactersOnField;
+                    for (Character updatedChar : updatedCharacters) {
+                        for (Character existingChar : charactersOnField) {
+                            if (isSameCharacter(existingChar, updatedChar)) {
+                                // Update the existing character's state
+                                existingChar.currentHealth = updatedChar.currentHealth;
+                                existingChar.isInCombat = updatedChar.isInCombat;
+                            }
+                        }
+                    }
+                    
+                    // Remove dead characters
+                    charactersOnField.removeIf(character -> character.currentHealth <= 0);
                 }
             }
+        }
+
+        // Helper method to identify the same character
+        private boolean isSameCharacter(Character char1, Character char2) {
+            return char1.id.equals(char2.id);
         }
 
         public void sendGameState(GameState gameState) {

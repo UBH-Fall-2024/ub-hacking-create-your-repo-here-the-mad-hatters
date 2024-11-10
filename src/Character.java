@@ -2,68 +2,49 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.UUID;
 
 import javax.imageio.*;
 
 public class Character implements Serializable {
     private static final long serialVersionUID = 1L;
-    String Name;
-    double x, y;
-    int direction;  // 1 for left, 2 for right
-    int size = 32;
-    int scale = 3;
-    
-    // Combat stats
-    int maxHealth;
-    int currentHealth;
-    int damage;
-    int attackSpeed = 500; // milliseconds between attacks
-    long lastAttackTime = 0;
-    boolean isAttacking = false;
-    Character currentTarget = null;
+    public String Name;
+    public double x;
+    public double y;
+    public int direction;
+    public int size = 64;
+    public int scale = 2;
+    public int maxHealth;
+    public int currentHealth;
+    public int damage;
+    public boolean isInCombat;
+    public String id; // Add unique identifier
     
     public Character(String name) {
         this.Name = name;
-        initializeStats(name);
-    }
-    
-    private void initializeStats(String name) {
+        this.id = UUID.randomUUID().toString(); // Generate unique ID
+        
+        // Set stats based on character type
         switch(name) {
             case "Alice":
-                maxHealth = 100;
-                damage = 20;
+                this.maxHealth = 100;
+                this.damage = 10;
                 break;
             case "Dragon":
-                maxHealth = 200;
-                damage = 35;
-                break;
-            case "Character3":  // Add your third character stats
-                maxHealth = 150;
-                damage = 25;
-                break;
-            case "Character4":  // Add your fourth character stats
-                maxHealth = 175;
-                damage = 30;
+                this.maxHealth = 200;
+                this.damage = 20;
                 break;
             default:
-                maxHealth = 100;
-                damage = 20;
+                this.maxHealth = 100;
+                this.damage = 10;
         }
-        currentHealth = maxHealth;
+        this.currentHealth = this.maxHealth;
     }
     
-    public boolean attack(Character target) {
-        long currentTime = System.currentTimeMillis();
-        if (currentTime - lastAttackTime >= attackSpeed) {
-            target.takeDamage(damage);
-            lastAttackTime = currentTime;
-            return true;
+    public void attack(Character target) {
+        if (!isDead() && !target.isDead()) {
+            target.currentHealth -= this.damage;
         }
-        return false;
-    }
-    
-    public void takeDamage(int amount) {
-        currentHealth -= amount;
     }
     
     public boolean isDead() {

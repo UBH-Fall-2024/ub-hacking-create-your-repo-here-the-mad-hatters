@@ -414,47 +414,83 @@ public class client extends JFrame {
         }
 
         private void handleCharacterCombat(Character character) {
-            // Check for tower collision
-            Rectangle charBounds = new Rectangle(
-                (int)character.x,
-                (int)character.y,
-                character.size * character.scale,
-                character.size * character.scale
-            );
-            
-            // Tower collision
-            Tower targetTower = character.direction == 1 ? leftTower : rightTower;
-            Rectangle towerBounds = new Rectangle(
-                targetTower.x,
-                targetTower.y,
-                targetTower.width,
-                targetTower.height
-            );
-            
-            if (charBounds.intersects(towerBounds)) {
-                targetTower.takeDamage(character.damage);
-                character.currentHealth = 0; // Die on impact
-                return;
-            }
-            
-            // Character combat
-            for (Character otherChar : charactersOnField) {
-                if (otherChar != character && character.direction != otherChar.direction) {
-                    Rectangle otherBounds = new Rectangle(
-                        (int)otherChar.x,
-                        (int)otherChar.y,
-                        otherChar.size * otherChar.scale,
-                        otherChar.size * otherChar.scale
-                    );
+            try {
+                // Check for tower collision
+                Rectangle charBounds = new Rectangle(
+                    (int)character.x,
+                    (int)character.y,
+                    character.size * character.scale,
+                    character.size * character.scale
+                );
+                
+                // Tower collision
+                Tower targetTower = character.direction == 1 ? leftTower : rightTower;
+                Rectangle towerBounds = new Rectangle(
+                    targetTower.x,
+                    targetTower.y,
+                    targetTower.width,
+                    targetTower.height
+                );
+                
+                // If colliding with tower, stop moving and attack
+                if (charBounds.intersects(towerBounds)) {
+                    character.isInCombat = true;
+                    targetTower.takeDamage(character.damage);
+                    character.currentHealth = 0;
                     
-                    if (charBounds.intersects(otherBounds)) {
-                        // Both characters attack each other
-                        character.attack(otherChar);
-                        otherChar.attack(character);
+                    // Send combat update to server
+                    PlayerAction action = new PlayerAction(playerId);
+                    action.type = "COMBAT_UPDATE";
+                    action.charactersOnField = new ArrayList<>(charactersOnField);
+                    out.reset();
+                    out.writeObject(action);
+                    out.flush();
+                    return;
+                }
+                
+                // Character combat
+                boolean inCombat = false;
+                for (Character otherChar : charactersOnField) {
+                    if (otherChar != character && character.direction != otherChar.direction) {
+                        Rectangle otherBounds = new Rectangle(
+                            (int)otherChar.x,
+                            (int)otherChar.y,
+                            otherChar.size * otherChar.scale,
+                            otherChar.size * otherChar.scale
+                        );
+                        
+                        if (charBounds.intersects(otherBounds)) {
+                            // Both characters attack each other and stop moving
+                            character.isInCombat = true;
+                            otherChar.isInCombat = true;
+                            character.attack(otherChar);
+                            otherChar.attack(character);
+                            inCombat = true;
+                            if(otherChar.isDead() || character.isDead()){
+                                inCombat = false;
+                                character.isInCombat = false;
+                                otherChar.isInCombat = false;
+                            }
+                            
+                            // Send combat update to server
+                            PlayerAction action = new PlayerAction(playerId);
+                            action.type = "COMBAT_UPDATE";
+                            action.charactersOnField = new ArrayList<>(charactersOnField);
+                            out.reset();
+                            out.writeObject(action);
+                            out.flush();
+                        }
                     }
                 }
+                
+                if (!inCombat) {
+                    character.isInCombat = false;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                connected = false;
             }
-        }
+        }       
 
         private void drawTower(Graphics g, Tower tower) {
             // Draw tower base
