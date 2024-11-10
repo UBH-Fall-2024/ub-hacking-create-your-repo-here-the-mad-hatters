@@ -1,18 +1,12 @@
 import java.io.Serializable;
 import java.util.ArrayList;
-
-public class GameState implements Serializable{
+import java.util.List;
+import java.util.Objects;
+public class GameState implements Serializable {
+    private static final long serialVersionUID = 1L;
+    List<Character> charactersOnField;
     
-    public ArrayList<Character> charactersOnField;
-
-    GameState(){
-        charactersOnField = new ArrayList<>();
-    }
-    GameState(ArrayList<Character> COF){
-        charactersOnField = COF;
-    }
-    @Override
-    public String toString() {
-        return "GameState{charactersOnField=" + charactersOnField + "}";
+    public GameState(List<Character> characters) {
+        this.charactersOnField = new ArrayList<>(characters);
     }
 }

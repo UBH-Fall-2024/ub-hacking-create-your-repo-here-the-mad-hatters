@@ -6,225 +6,248 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.List;
 
 public class client extends JFrame {
-    // Server Stuff
-    private static final String SERVER_ADDRESS = "10.84.83.113"; // Server's IP address
+    private static final String SERVER_ADDRESS = "127.0.0.1";
     private static final int SERVER_PORT = 12345;
     private static final int WIDTH = 1920;
     private static final int HEIGHT = 1080;
     private static final int FPS = 60;
 
-    // Layout Stuff
     private JPanel cards;
-    private CardLayout c;
+    private CardLayout cardLayout;
     private JPanel menu, field;
-    private int open;// What frame were on
-
-    // Menu Stuff
-    private JLabel title;
-    private JButton goToField;
-    private BufferedImage backgroundImage;
+    private volatile boolean isRunning = true;
 
     // Game state variables
-    ArrayList<Character> charactersOnField = new ArrayList<>();
+    private volatile List<Character> charactersOnField = new CopyOnWriteArrayList<>();
+    private volatile int counter = 0;
+    private volatile int spriteNum = 1;
 
-    // Client Only Variables
-    public int counter = 0;
-    public int spriteNum = 1;
+    private Socket socket;
+    private ObjectOutputStream out;
+    private ObjectInputStream in;
+    private int playerId;
+    private volatile boolean connected = false;
 
-    private static Socket socket;
-    private static ObjectOutputStream out;
-    private static ObjectInputStream in;
-    private static int playerId;
-
-    // public static void main(String[] args) {
-    //     client client = new client();
-    //     client.start();
-    // }
-
-    public client(int s, int t){
-
+    public client() {
+        setTitle("Wonderland Game");
+        setSize(WIDTH, HEIGHT);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        
+        initializeUI();
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                disconnect();
+            }
+        });
     }
 
-    public client(){
-        c = new CardLayout();
-        cards = new JPanel(c);
-        this.getContentPane().add(cards);
-        cards.setVisible(true);
+    private void initializeUI() {
+        cardLayout = new CardLayout();
+        cards = new JPanel(cardLayout);
+        
+        // Initialize menu
+        initializeMenu();
+        
+        // Initialize game field
+        initializeField();
+        
+        cards.add(menu, "MENU");
+        cards.add(field, "GAME");
+        
+        add(cards);
+        cardLayout.show(cards, "MENU");
+    }
 
-        //initliaze menu image here
-        //image = ???
-
-        // Menu Intitiliazation
-        menu = new ImageBackgroundPanel("src/Background.png");
+    private void initializeMenu() {
+        menu = new ImageBackgroundPanel("src/aliceTitleScreen.jpg");
         menu.setLayout(null);
-        repaint();
 
-        title = new JLabel("Welcome To Wonderland");
-        Font aliceFont = new Font("Serif", Font.PLAIN, 100);
-        try {
-            // Load the font file from the resources or file system
-            aliceFont = Font.createFont(Font.TRUETYPE_FONT, new File("src/AW-Font.ttf"));
-            aliceFont = aliceFont.deriveFont(140f); // Set the font size
-        } catch (FontFormatException | IOException e) {
-            e.printStackTrace();
-        }
+        JLabel title = createTitleLabel();
+        JButton startButton = createStartButton();
+
+        menu.add(title);
+        menu.add(startButton);
+    }
+
+    private JLabel createTitleLabel() {
+        JLabel title = new JLabel("Welcome To Wonderland");
+        Font aliceFont = loadCustomFont();
         title.setFont(aliceFont);
-        title.setForeground(Color.CYAN);// Text Color
+        title.setForeground(Color.BLACK);
         title.setSize(1150, 100);
         title.setHorizontalAlignment(SwingConstants.CENTER);
         title.setLocation(200, 150);
-        title.setVisible(true);
-        menu.add(title);
-
-        goToField = new JButton("Start");
-        goToField.setSize(400, 200);
-        goToField.setLocation(550, 350);
-        goToField.setFont(aliceFont);
-        goToField.setBackground(Color.GREEN);
-        goToField.setForeground(Color.MAGENTA);
-        goToField.setVisible(true);
-        goToField.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent e){
-                c.show(cards, "2");
-                //client.start();
-                // Do Start Stuff
-                try {
-                    // Establish a connection to the server
-                    socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
-                    out = new ObjectOutputStream(socket.getOutputStream());
-                    in = new ObjectInputStream(socket.getInputStream());
-        
-                    // Receive player ID from server
-                    playerId = (Integer) in.readObject();
-                    System.out.println("Connected as Player " + playerId);
-        
-                    // Start listening for server messages
-                    new Thread(new ServerListener(field)).start();
-        
-                    // Handle key events for paddle movement
-                    field.addKeyListener(new KeyAdapter() {
-                        ArrayList<Character> newChars = new ArrayList<>();
-                        @Override
-                        public void keyPressed(KeyEvent e) {
-                            String action = null;
-                            //CHANGE AS NEEDED
-                            if (e.getKeyCode() == KeyEvent.VK_UP) {
-                                newChars.add(new Character("Alice"));
-                            } else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-                                action = "DOWN";
-                            }
-        
-                            // Send player action to the server
-                            if (action != null) {
-                                try {//SEND PLAYER ACTION
-                                    System.out.println("SEND ACTION");
-                                    PlayerAction act = new PlayerAction(playerId);
-                                    act.charactersOnField = newChars;
-                                    out.writeObject(act);
-                                    out.flush();
-                                } catch (IOException ex) {
-                                    ex.printStackTrace();
-                                }
-                            }
-                        }
-                    });
-                } catch (IOException | ClassNotFoundException er) {
-                    er.printStackTrace();
-                }
-            }
-        });
-        menu.add(goToField);
-
-        // Field Intitilization
-        field = new GamePanel();
-        field.setLayout(null);
-        //set background image or color ???
-        field.setVisible(true);
-        field.setFocusable(true);
-        field.requestFocusInWindow();
-
-        cards.add(menu, "1");
-        cards.add(field, "2");
-        c.show(cards, "1");
-        open = 1;
-        repaint();
-
+        return title;
     }
 
-    // Thread to listen for game state updates from the server
-    private class ServerListener implements Runnable {
-
-        JPanel frame;
-
-        ServerListener(JPanel f){
-            this.frame = f;
+    private Font loadCustomFont() {
+        try {
+            Font font = Font.createFont(Font.TRUETYPE_FONT, new File("src/AW-Font.ttf"));
+            return font.deriveFont(140f);
+        } catch (FontFormatException | IOException e) {
+            e.printStackTrace();
+            return new Font("Serif", Font.PLAIN, 100);
         }
+    }
 
+    private JButton createStartButton() {
+        JButton startButton = new JButton("Start");
+        startButton.setSize(400, 125);
+        startButton.setLocation(550, 350);
+        startButton.setFont(loadCustomFont().deriveFont(60f));
+        startButton.setBackground(Color.CYAN);
+        startButton.setForeground(Color.DARK_GRAY);
+        
+        startButton.addActionListener(e -> connectToServer());
+        return startButton;
+    }
+
+    private void connectToServer() {
+        try {
+            socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
+            out = new ObjectOutputStream(socket.getOutputStream());
+            out.flush(); // Important: flush the header
+            in = new ObjectInputStream(socket.getInputStream());
+
+            playerId = in.readInt(); // Changed from readObject to readInt
+            System.out.println("Connected as Player " + playerId);
+            
+            connected = true;
+            cardLayout.show(cards, "GAME");
+            field.requestFocusInWindow();
+
+            // Start server listener in a separate thread
+            new Thread(new ServerListener()).start();
+        } catch (IOException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Failed to connect to server: " + e.getMessage());
+        }
+    }
+
+    private void initializeField() {
+        field = new GamePanel();
+        field.setFocusable(true);
+        
+        field.addKeyListener(new GameKeyListener());
+    }
+
+    private void disconnect() {
+        isRunning = false;
+        connected = false;
+        try {
+            if (out != null) out.close();
+            if (in != null) in.close();
+            if (socket != null) socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private class ServerListener implements Runnable {
         @Override
         public void run() {
-            
+            while (isRunning && connected) {
+                try {
+                    Object received = in.readObject();
+                    if (received instanceof GameState) {
+                        GameState gameState = (GameState) received;
+                        charactersOnField = new CopyOnWriteArrayList<>(gameState.charactersOnField);
+                        
+                        // Update animation counter
+                        counter++;
+                        if (counter >= (FPS / 2)) {
+                            spriteNum = (spriteNum == 1) ? 2 : 1;
+                            counter = 0;
+                        }
 
-
-            try {
-                while (true) {
-                    // Receive GameState object from the server
-                    GameState gameState = (GameState) in.readObject();
-
-                    // Update game state variables
-                    charactersOnField = gameState.charactersOnField;
-
-                    //update local animations
-                    counter++;
-                    if (counter >= (FPS / 2)) { // Smooth animation
-                        spriteNum = (spriteNum == 1) ? 2 : 1;
-                        counter = 0;
+                        SwingUtilities.invokeLater(field::repaint);
                     }
-
-                    // Trigger a repaint on the game window
-                    SwingUtilities.invokeLater(() -> {
-                    //    JFrame.getFrames()[0].repaint();
-                        frame.repaint();
-                    });
-                    //frame.repaint();
+                } catch (IOException | ClassNotFoundException e) {
+                    if (connected) {
+                        e.printStackTrace();
+                        connected = false;
+                        SwingUtilities.invokeLater(() -> {
+                            JOptionPane.showMessageDialog(client.this, 
+                                "Lost connection to server: " + e.getMessage());
+                            cardLayout.show(cards, "MENU");
+                        });
+                        break;
+                    }
                 }
-            } catch (IOException | ClassNotFoundException e) {
-                e.printStackTrace();
             }
         }
     }
 
-    // Game panel to render paddles, ball, and scores
+    private class GameKeyListener extends KeyAdapter {
+        @Override
+        public void keyPressed(KeyEvent e) {
+            if (!connected) return;
+
+            try {
+                if (e.getKeyCode() == KeyEvent.VK_UP) {
+                    ArrayList<Character> newChars = new ArrayList<>();
+                    newChars.add(new Character("Alice"));
+                    PlayerAction action = new PlayerAction(playerId);
+                    action.charactersOnField = newChars;
+                    
+                    out.reset(); // Reset the stream to prevent caching
+                    out.writeObject(action);
+                    out.flush();
+                }
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                connected = false;
+            }
+        }
+    }
+
     private class GamePanel extends JPanel {
+        private final Image backgroundImage;
+
+        public GamePanel() {
+            try {
+                backgroundImage = ImageIO.read(new File("src/Background.png"));
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to load background image", e);
+            }
+        }
+
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
-            //Graphics2D g2 = (Graphics2D)g;
-
-            g.setColor(Color.GRAY);
-            g.fillRect(0, 0, getWidth(), getHeight()); // Clear the background
-
-            // Draw Game
-
-            // Draw Characters
-            for(Character character : charactersOnField){
-                Character fixer = new Character(character.Name);
-                BufferedImage image = null;
-                if (character.direction == 1) {
-                    image = (spriteNum == 1) ? fixer.left1 : fixer.left2;
-                }
-                else {
-                    image = (spriteNum == 1) ? fixer.right1 : fixer.right2;
-                }
-                g.drawImage(image, character.x, character.y, character.size * character.scale, character.size * character.scale, null);
+            
+            // Draw background
+            if (backgroundImage != null) {
+                g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
             }
-            //characters all drawn
 
+            // Draw characters
+            for (Character character : charactersOnField) {
+                try {
+                    BufferedImage sprite;
+                    String imagePath = character.direction == 1 ?
+                        "src/Alice-Left-" + spriteNum + ".png" :
+                        "src/Alice-Right-" + spriteNum + ".png";
+                    
+                    sprite = ImageIO.read(new File(imagePath));
+                    g.drawImage(sprite, 
+                              (int)character.x, 
+                              (int)character.y, 
+                              character.size * character.scale, 
+                              character.size * character.scale, 
+                              null);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 }
-
 class ImageBackgroundPanel extends JPanel {
     private Image backgroundImage;
 
