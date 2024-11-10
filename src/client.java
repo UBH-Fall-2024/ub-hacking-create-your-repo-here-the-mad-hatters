@@ -299,6 +299,7 @@ public class client extends JFrame {
     private void disconnect() {
         isRunning = false;
         connected = false;
+        SoundManager.getInstance().cleanup();
         try {
             if (out != null) out.close();
             if (in != null) in.close();
@@ -473,9 +474,9 @@ public class client extends JFrame {
                 if (charBounds.intersects(towerBounds) && character.canAttack()) {
                     character.isInCombat = true;
                     targetTower.takeDamage(character.damage * character.towerDamageScale);
-                    character.currentHealth = 0; // Units die when hitting tower
-                    
-                    // Send combat update to server
+                    soundManager.playSound("tower_hit");
+                    character.currentHealth = 0;
+                    soundManager.playSound("death");  // Also play death sound since character dies
                     sendCombatUpdate();
                     return;
                 }
