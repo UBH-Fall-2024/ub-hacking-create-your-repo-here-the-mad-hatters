@@ -1,0 +1,36 @@
+We suggest running the program on multiple laptops as it is intended to be multiplayer
+Choose a device to be your server host
+That device will run the server file to host the game
+
+2 other people will be the players
+First they must go into the client class and find the SERVER_ADDRESS variable
+private static final String SERVER_ADDRESS = "127.0.0.1";
+"127.0.0.1" is the local host, use this if you plan to run all the games on the same laptop as the server
+Otherwise, replace this with the IPV4 Address of the hosts laptop/device
+If you need help lookup how to find your IPV4
+Both players need to have the hosts IPV4 as the SERVER_ADDRESS;
+  private static final String SERVER_ADDRESS = "HOSTS_IPV4";
+
+Once the SERVER_ADDRESS is set up, we can begin running
+First the host runs the server file
+Once the host is running the server file, the 2 players run the file "main.java"
+This should open the game for the 2 players starting on the title screen
+
+The 2 players should press start, the order they join will determine if they're player 1 or 2
+  1st to press start is player 1, 2nd is player 2
+pressing start connects the player to the host
+once both players are connected game pieces can begin moving
+
+Each player will have 4 buttons on the bottom labeled with a character from alice in wonderland
+  player 1 has good characters like Alice
+  player 2 had evil characters like the Red Queen
+Pressing these buttons will spawn the named character in front of your tower
+the character will move towards the opponents tower and upon reaching it hit the tower and die
+if a character encounters one of your opponenets characters along the way, they will fight
+
+the goal is to take the other players tower down to 0 health
+each button has a cooldown determined by the strength of the summon
+the summons in order are scout, ranged, warrior, tank
+feel free to view the underlying stats in the character file
+
+Have Fun!!! Enjoy!!!
